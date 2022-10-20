@@ -13,14 +13,16 @@ import itertools
 import matplotlib.pyplot as plt
 import sys
 import numpy as np
-os.chdir("/BIRDS/VCF_HIR")
+
+#os.chdir("/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/python")
 
 ## Arguments
 name_file, folded, standardized = sys.argv[1:4]
+#name_file, folded, standardized = "Contemporary_Merged_test.vcf.gz", True, True
 print(name_file, folded, standardized)
 
 
-with open(name_file,  mode='rt') as file:
+with gzip.open(name_file,  mode='rt') as file:
     line = file.readline()
     while line != "": #tant qu'il reste des lignes a parcourir
         if line[0:6] == "#CHROM": #on recupere le nombre de samples
@@ -65,6 +67,7 @@ plt.savefig('SFS_stand_'+name_file[:-7]+'.png')
 
 #Outputs: we'll have to take in arguments the software used next (dadi or stairwayplot) to format the sfs the correct way
 
+
 #
 # sfs_std=np.array([[0, 0, 0, 0, 0, 1, 0, 0, 1, 4, 2],[0, 0, 0, 0, 0, 2 ,5 , 2 ,3 , 4, 2]])
 #
@@ -99,18 +102,6 @@ plt.savefig('SFS_stand_'+name_file[:-7]+'.png')
 #
 # dadi (sfs_std,folded,Npops,True)
 #
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
