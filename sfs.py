@@ -24,8 +24,8 @@ def sfs(vcf, n, folded):
         sfs = [0] * n
     else:
         sfs = sfs = [0] * (2 * n - 1) 
-    with gzip.open(vcf,  mode='rt') as file: 
-        line = file.readline()
+    with gzip.open(vcf,  mode='rt') as file:
+	line = file.readline()
         while line != "": #tant qu'il reste des lignes a parcourir
             if line[0] != "#" and "/." not in line and "./" not in line:   #il faudrait mettre une expression régulière
                 split_line = line.split("\t") 
@@ -85,6 +85,44 @@ def blueprint_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_ge
             else:
                 out_file.write(line)
             line = temp.readline()
+
+
+#
+# sfs_std=np.array([[0, 0, 0, 0, 0, 1, 0, 0, 1, 4, 2],[0, 0, 0, 0, 0, 2 ,5 , 2 ,3 , 4, 2]])
+#
+# Npops = [2*n,6]
+
+# def dadi (sfs, folded, N_pops, mask):
+#     #N_pops est une liste contenant l'effectif de chaque population
+#     #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
+#     #correspondant à une population
+#     #mask = True si masked, False sinon
+#     #fold = True si folded, False sinon
+#     N_pops=[i+1 for i in N_pops]
+#     #Première ligne :
+#     dim=""
+#     for i in N_pops:
+#         if len(dim)==0: #Pour ne pas ajouter d'espace au début de la ligne
+#             dim=dim+str(i)
+#         else :
+#             dim=dim+" "+str(i)#ajoute un espace et la dimension à la première ligne
+#     dim =dim+" "+["unfolded","folded"][fold]
+#     #ligne de sfs :
+#     sfs_write=list(itertools.chain.from_iterable([["fs",list(sfs[:,i])," "] for i in range (np.shape(sfs)[1])]))
+#     sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste un une chaîne de caractères
+#     sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
+#     #écriture du fichier :
+#     with open('dadi_input.txt', 'w') as f:
+#         f.write(dim)
+#         f.write('\n')
+#         f.write(sfs_write)
+#         f.write("\n"+["0","1"][mask])
+#
+#
+#
+# dadi (sfs_std,folded,Npops,True)
+#
+
 
 
 
