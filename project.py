@@ -20,6 +20,7 @@ import numpy as np
 
 def compute_sfs(vcf, n, folded):
     #on initialise un sfs
+    nsites = 0
     if folded: 
         sfs = [0] * n
     else:
@@ -30,6 +31,7 @@ def compute_sfs(vcf, n, folded):
             if line[0] != "#" and "/." not in line and "./" not in line:   #il faudrait mettre une expression régulière
                 split_line = line.split("\t") 
                 if "," not in split_line[4]: #on garde que les sites bi-alléliques (à ajouter dans express. reg. ?)
+                    nsites += 1
                     gen = list(itertools.chain.from_iterable([[int(i[0]), int(i[2])] for i in split_line[-(n):]])) #on recupere les genotypes 
                     #gen est une liste d'entier O ou 1
                     if folded:
@@ -40,7 +42,7 @@ def compute_sfs(vcf, n, folded):
                         #print(gen)
                         sfs[count - 1] = sfs[count - 1] + 1 #on incrémente 
             line = file.readline()
-    return(sfs)
+    return(sfs, nsites)
 
 
 def transform_sfs(sfs, n, folded):
@@ -81,7 +83,7 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
                 else:
                     out_file.write(line.split(':')[0]+': '+ str(locals().get(line.split(':')[0]))+'\n')
             elif line.split(':')[0] == "nrand" :
-                out_file.write('nrand :'+str(int((nseq-2)/4))+' '+ str(int((nseq-2)/2))+' '+ str(int((nseq-2)*3/4))+' '+ str(int(nseq-2))+'\n')
+                out_file.write('nrand: '+str(int((nseq-2)/4))+' '+ str(int((nseq-2)/2))+' '+ str(int((nseq-2)*3/4))+' '+ str(int(nseq-2))+'\n')
             else:
                 out_file.write(line)
             line = temp.readline()
@@ -117,19 +119,19 @@ def input_dadi (sfs, folded, n, mask = True):
 
 os.chdir("/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/scripts")
 
-vcf = "/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/data/Contemporary_Merged.vcf.gz"
-n = 6
+vcf = "/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/data/Historical_Merged.vcf.gz"
+n = 5
 folded = True
 transformed = True
-popid = 'hiron'
-L = 10000000
+popid = 'hirundo_historical'
 mu = 10e-8
 gen_time = 2
 plot = True
 stairwayplot2 = True
 dadi = True
 
-sfs = compute_sfs(vcf, n, folded)
+sfs = compute_sfs(vcf, n, folded)[0]
+nsites = compute_sfs(vcf, n, folded)[1]
 
 if transformed:
     sfs = transform_sfs(sfs, n, folded)
@@ -138,7 +140,7 @@ if plot:
     plot_sfs(sfs, n, folded, transformed, popid)
     
 if stairwayplot2:
-    input_stairwayplot2(popid = popid, nseq = 2*n, L= L, whether_folded = folded, 
+    input_stairwayplot2(popid = popid, nseq = 2*n, L= nsites, whether_folded = folded, 
                             SFS = sfs, mu = mu, year_per_generation = gen_time)
     
 if dadi:
