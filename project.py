@@ -88,7 +88,7 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
 
 
 
-def input_dadi (sfs, folded, n, mask = True):
+def input_dadi (popid, sfs, folded, n, mask = True):
     #n est l'effectif de la pop
     #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
     #correspondant à une population
@@ -102,7 +102,7 @@ def input_dadi (sfs, folded, n, mask = True):
     sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste un une chaîne de caractères
     sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
     #écriture du fichier :
-    with open('dadi_input.txt', 'w') as f:
+    with open('popid'+'dadi_input.txt', 'w') as f:
         f.write(dim+'\n'+sfs_write+"\n"+["0","1"][mask])
 
 
