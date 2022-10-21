@@ -18,7 +18,7 @@ import numpy as np
 
 ## Arguments
 name_file, folded, standardized = sys.argv[1:4]
-#name_file, folded, standardized = "Contemporary_Merged_test.vcf.gz", True, True
+#name_file, folded, standardized = "Contemporary_Merged_test.vcf", True, True
 print(name_file, folded, standardized)
 
 
@@ -67,41 +67,47 @@ plt.savefig('SFS_stand_'+name_file[:-7]+'.png')
 
 #Outputs: we'll have to take in arguments the software used next (dadi or stairwayplot) to format the sfs the correct way
 
+###
 
-#
-# sfs_std=np.array([[0, 0, 0, 0, 0, 1, 0, 0, 1, 4, 2],[0, 0, 0, 0, 0, 2 ,5 , 2 ,3 , 4, 2]])
-#
-# Npops = [2*n,6]
-# def dadi (sfs,fold,N_pops,mask):
-#     #N_pops est une liste contenant l'effectif de chaque population
-#     #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
-#     #correspondant à une population
-#     #mask = True si masked, False sinon
-#     #fold = True si folded, False sinon
-#     N_pops=[i+1 for i in N_pops]
-#     #Première ligne :
-#     dim=""
-#     for i in N_pops:
-#         if len(dim)==0: #Pour ne pas ajouter d'espace au début de la ligne
-#             dim=dim+str(i)
-#         else :
-#             dim=dim+" "+str(i)#ajoute un espace et la dimension à la première ligne
-#     dim =dim+" "+["unfolded","folded"][fold]
-#     #ligne de sfs :
-#     sfs_write=list(itertools.chain.from_iterable([["fs",list(sfs[:,i])," "] for i in range (np.shape(sfs)[1])]))
-#     sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste un une chaîne de caractères
-#     sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
-#     #écriture du fichier :
-#     with open('dadi_input.txt', 'w') as f:
-#         f.write(dim)
-#         f.write('\n')
-#         f.write(sfs_write)
-#         f.write("\n"+["0","1"][mask])
-#
-#
-#
-# dadi (sfs_std,folded,Npops,True)
-#
+#os.chdir("/BIRDS/VCF_HIR")
+
+
+import os
+import gzip
+import itertools
+import matplotlib.pyplot as plt
+import sys
+import numpy as np
+
+
+def dadi (sfs,folded,n,mask):
+    #N_pops est l'effectif d'une
+    #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
+    #correspondant à une population
+    #mask = True si masked, False sinon
+    #fold = True si folded, False sinon
+    n=n+1
+    #Première ligne :
+
+
+    dim =str(n)+' '+["unfolded","folded"][folded]
+    #ligne de sfs :
+    sfs_write=list(itertools.chain.from_iterable([["fs[",str(sfs[i]),"] "] for i in range (len(sfs))]))
+    sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste un une chaîne de caractères
+    sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
+
+    #écriture du fichier :
+    with open('dadi_input.txt', 'w') as f:
+        f.write(dim+'\n'+sfs_write+"\n"+["0","1"][mask])
+
+
+
+dadi (sfs,folded,n,True)
+
+[]
+
+####
+
 
 
 
