@@ -10,7 +10,7 @@ SFS:
 pct_training: 0.67
 nrand:
 project_dir:
-stairway_plot_dir: path/stairwayplot2
+stairway_plot_dir: /media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/scripts/stairway_plot_v2.1.1/stairway_plot_es
 ninput: 200
 #random_seed: 6
 #output setting
