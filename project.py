@@ -129,7 +129,7 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
 
 
 
-def input_dadi (sfs, folded, n, mask = True):
+def input_dadi (popid, sfs, folded, n, mask = True):
     #writes the input file to run dadi
     #n est l'effectif de la pop
     #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
@@ -141,10 +141,10 @@ def input_dadi (sfs, folded, n, mask = True):
     dim =str(n)+' '+["unfolded","folded"][folded]
     #ligne de sfs :
     sfs_write=list(itertools.chain.from_iterable([["fs[",str(sfs[i]),"] "] for i in range (len(sfs))]))
-    sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste une chaîne de caractères
+    sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste en une chaîne de caractères
     sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
     #écriture du fichier :
-    with open('dadi_input.txt', 'w') as f:
+    with open(popid+'_dadi_input.txt', 'w') as f:
         f.write(dim+'\n'+sfs_write+"\n"+["0","1"][mask])
 
 
@@ -207,7 +207,7 @@ if args.stairwayplot2:
                             SFS = sfs, mu = args.mu, year_per_generation = args.gen_time, stairway_plot_dir=args.path_to_stairwayplot2)
     
 if args.dadi:
-    input_dadi(sfs, args.folded, args.n, True)
+    input_dadi(args.popid, sfs, args.folded, args.n, True)
 
 
             
