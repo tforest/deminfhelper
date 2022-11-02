@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-usage: project.py [-h] [--transformed] [--plot] [--stairwayplot2]
-                  [--path_to_stairwayplot2 PATH_TO_STAIRWAYPLOT2] [--dadi]
-                  [--mu MU] [--gen_time GEN_TIME]
-                  vcf n popid folded
+usage: project.py [-h] [--vcf VCF] [--n N] [--folded] [--transformed] [--sfs]
+                  [--plot] [--stairwayplot2]
+                  [--path_to_stairwayplot2 PATH_TO_STAIRWAYPLOT2]
+                  [--plot_swplot2] [--summary_file SUMMARY_FILE]
+                  [--name_plot NAME_PLOT] [--dadi] [--mu MU]
+                  [--gen_time GEN_TIME]
+                  popid
 
-Computes the sfs from the vcf and runs demography inference softwares. By
-default, outputs the non-transformed sfs in a text file named {popid}_sfs.txt
+Computes the sfs from the vcf and runs demography inference softwares.
 
 positional arguments:
-  vcf                   path to the vcf
-  n                     number of individuals in the pop
   popid                 name of the population
-  folded                either the vcf is phased or not
 
 optional arguments:
   -h, --help            show this help message and exit
+  --vcf VCF             path to the vcf
+  --n N                 number of individuals
+  --folded              if the vcf is phased
   --transformed         if the sfs has to be transformed
+  --sfs                 to compute the sfs
   --plot                to plot the sfs
   --stairwayplot2       to run stairwayplot2: the sfs must not be transformed,
                         the path to stairwayplot2 (--path-to-stairwayplot2),
@@ -24,6 +27,13 @@ optional arguments:
                         (--gen_time) must be specified
   --path_to_stairwayplot2 PATH_TO_STAIRWAYPLOT2
                         path to stairwayplot2
+  --plot_swplot2        plot sariwayplot2 (by default, output file names
+                        stairwayplot_plot_popid, or can be specifed with
+                        --name_plot
+  --summary_file SUMMARY_FILE
+                        path to the plot summary file
+  --name_plot NAME_PLOT
+                        optional name of the sariwayplot2 plot
   --dadi                to run dadi : the sfs must not be transformed
   --mu MU               mutation rate (per site per generation)
   --gen_time GEN_TIME   generation time (in years)
@@ -126,7 +136,32 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
             else:
                 out_file.write(line)
             line = temp.readline()
-
+            
+            
+            
+def plot_stairwayplot2(popid, summary_file, output_name):
+    Ne_med=[]
+    Ne1=[]
+    Ne3=[]
+    T=[]
+    with open(summary_file) as input_file:
+        line = input_file.readline()
+        line = input_file.readline()
+        while line != '':
+            #if float(line.split('\t')[6]) not in Ne or float(line.split('\t')[5]) not in T: 
+            Ne_med.append(float(line.split('\t')[6]))
+            Ne1.append(float(line.split('\t')[7]))
+            Ne3.append(float(line.split('\t')[8]))
+            T.append(float(line.split('\t')[5]))
+            line = input_file.readline()
+    plt.plot(T,Ne_med,color="blue")
+    plt.plot(T,Ne1,color="grey")
+    plt.plot(T,Ne3,color="grey")
+    plt.title(popid)
+    plt.xlabel('Time (in years)')
+    plt.ylabel('Ne')
+    plt.savefig(output_name)
+    
 
 
 def input_dadi (popid, sfs, folded, n, mask = True):
@@ -152,19 +187,23 @@ def input_dadi (popid, sfs, folded, n, mask = True):
 
 ## SCRIPT
 
-parser = argparse.ArgumentParser(description='Computes the sfs from the vcf and runs demography inference softwares. By default, outputs the non-transformed sfs in a text file named {popid}_sfs.txt')
+parser = argparse.ArgumentParser(description='Computes the sfs from the vcf and runs demography inference softwares.')
 
 #mandatory arguments
-parser.add_argument("vcf", help="path to the vcf")
-parser.add_argument("n", type=int, help="number of individuals in the pop")
 parser.add_argument("popid", help="name of the population")
-parser.add_argument("folded", type=bool, help="either the vcf is phased or not")
 
 #optional arguments
+parser.add_argument("--vcf", help="path to the vcf")
+parser.add_argument("--n", type=int, help="number of individuals")
+parser.add_argument("--folded", help="if the vcf is phased", action = "store_true")
 parser.add_argument("--transformed", help = "if the sfs has to be transformed", action = "store_true")
+parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
 parser.add_argument("--plot", help = "to plot the sfs", action = "store_true")
 parser.add_argument("--stairwayplot2", help = "to run stairwayplot2: the sfs must not be transformed, the path to stairwayplot2 (--path-to-stairwayplot2), the mutation rate (--mu) and the generation time (--gen_time) must be specified", action = "store_true")
 parser.add_argument("--path_to_stairwayplot2", help = "path to stairwayplot2")
+parser.add_argument("--plot_swplot2", help = "plot sariwayplot2 (by default, output file names stairwayplot_plot_popid, or can be specifed with --name_plot ", action = "store_true")
+parser.add_argument("--summary_file", help = "path to the plot summary file")
+parser.add_argument("--name_plot", help = "optional name of the sariwayplot2 plot")
 parser.add_argument("--dadi", help = "to run dadi : the sfs must not be transformed", action = "store_true")
 parser.add_argument("--mu", type=float, help="mutation rate (per site per generation)")
 parser.add_argument("--gen_time", type=int, help="generation time (in years)")
@@ -176,38 +215,57 @@ args = parser.parse_args()
 #n = 5
 #folded = True
 #transformed = False
-#popid = 'hirundo_historical'
+#popid = 'hiron_contemp'
 #mu = 10e-8
 #gen_time = 2
 #plot = True
 #stairwayplot2 = True
 #path_to_stairwayplot2 = "/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/scripts/stairway_plot_v2.1.1/stairway_plot_es"
 #dadi = True
+#nrand=7
+#plot_swplot2 = True
+#summary_file = "/media/camille/Donnees/Documents/Etudes/ENS/M2/Projet/scripts/hiron_contemp/hiron_contemp.final.summary"
 
 
-sfs = compute_sfs(args.vcf, args.n, args.folded)[0]
-nsites = compute_sfs(args.vcf, args.n, args.folded)[1]
-
-
-if args.transformed:
-    sfs = transform_sfs(sfs, args.n, args.folded)
-    with open(args.popid+"_sfs_transformed.txt", 'w') as sfs_out:
-        for i in sfs:
-            sfs_out.write(str(i)+" ")
-else:
-    with open(args.popid+"_sfs.txt", 'w') as sfs_out:
-        for i in sfs:
-            sfs_out.write(str(i)+" ")
+if args.sfs:
+    sfs = compute_sfs(args.vcf, args.n, args.folded)[0]
+    nsites = compute_sfs(args.vcf, args.n, args.folded)[1]
+    if args.transformed:
+        sfs = transform_sfs(sfs, args.n, args.folded)
+        with open(args.popid+"_sfs_transformed.txt", 'w') as sfs_out:
+            for i in sfs:
+                sfs_out.write(str(i)+" ")
+    else:
+        with open(args.popid+"_sfs.txt", 'w') as sfs_out:
+            for i in sfs:
+                sfs_out.write(str(i)+" ")
 
 if args.plot:
     plot_sfs(sfs, args.n, args.folded, args.transformed, args.popid)
     
 if args.stairwayplot2:
-    input_stairwayplot2(popid = args.popid, nseq = 2*args.n, L= nsites, whether_folded = args.folded, 
+    if args.sfs:
+        input_stairwayplot2(popid = args.popid, nseq = 2*args.n, L= nsites, whether_folded = args.folded, 
                             SFS = sfs, mu = args.mu, year_per_generation = args.gen_time, stairway_plot_dir=args.path_to_stairwayplot2)
+    else:
+        sfs = compute_sfs(args.vcf, args.n, args.folded)[0]
+        nsites = compute_sfs(args.vcf, args.n, args.folded)[1]
+        input_stairwayplot2(popid = args.popid, nseq = 2*args.n, L= nsites, whether_folded = args.folded, 
+                            SFS = sfs, mu = args.mu, year_per_generation = args.gen_time, stairway_plot_dir=args.path_to_stairwayplot2)
+
+if args.plot_swplot2:
+    if args.name_plot:
+        plot_stairwayplot2(args.popid, args.summary_file, args.name_plot)
+    else:
+        plot_stairwayplot2(args.popid, args.summary_file, "stairwayplot2_plot_"+args.popid+".png")
+
     
 if args.dadi:
-    input_dadi(args.popid, sfs, args.folded, args.n, True)
+    if args.sfs:
+        input_dadi(args.popid, sfs, args.folded, args.n, True)
+    else:
+        sfs = compute_sfs(args.vcf, args.n, args.folded)[0]
+        input_dadi(args.popid, sfs, args.folded, args.n, True)
 
 
             
