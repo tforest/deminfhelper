@@ -154,18 +154,28 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
             line = temp.readline()
 
 def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
-    cmd1 = "".join(["qsub -cwd -V -N stairwayplot2_", popid, " -o /home/tforest/work/birdsdemography/out.err/stairwayplot2_", popid, ".out -e /home/tforest/work/birdsdemography/out.err/stairwayplot2_", \
-                   popid, ".err -q short.q -b y 'java -cp ", path_to_stairwayplot2, " Stairbuilder ", out_dir, popid, ".blueprint'"])
-    #print(cmd1)
-    output = subprocess.check_output([cmd1], shell=True) 
-    job_submit_output = output.decode(encoding="utf-8")
-    submitted_job_id = job_submit_output.split(" ")[2] #liste de l'ID des jobs
-    #print(submitted_job_id)
-    cmd2 = "".join(["qsub -cwd -V -N stairwayplot2_inf_", popid, " -o /home/tforest/work/birdsdemography/out.err/stairwayplot2_inf_", popid, ".out -e /home/tforest/work/birdsdemography/out.err/stairwayplot2_inf_", \
-                   popid, ".err -q short.q -hold_jid ", submitted_job_id, " -b y 'bash ", out_dir, popid, ".blueprint.sh'"])
-    #print(cmd2)
-    os.system(cmd2)
+    # if cluster_engine == "sge":
+    #     cmd1 = "".join(["qsub -cwd -V -N stairwayplot2_", popid, " -o /home/tforest/work/birdsdemography/out.err/stairwayplot2_", popid, ".out -e /home/tforest/work/birdsdemography/out.err/stairwayplot2_", \
+    #                     popid, ".err -q short.q -b y 'java -cp ", path_to_stairwayplot2, " Stairbuilder ", out_dir, popid, ".blueprint'"])
+    #     #print(cmd1)
+    #     output = subprocess.check_output([cmd1], shell=True) 
+    #     job_submit_output = output.decode(encoding="utf-8")
+    #     submitted_job_id = job_submit_output.split(" ")[2] #liste de l'ID des jobs
+    #     #print(submitted_job_id)
 
+    #     cmd2 = "".join(["qsub -cwd -V -N stairwayplot2_inf_", popid, " -o /home/tforest/work/birdsdemography/out.err/stairwayplot2_inf_", popid, ".out -e /home/tforest/work/birdsdemography/out.err/stairwayplot2_inf_", \
+    #                    popid, ".err -q short.q -hold_jid ", submitted_job_id, " -b y 'bash ", out_dir, popid, ".blueprint.sh'"])
+    #     #print(cmd2)
+    #     os.system(cmd2)
+    # else:
+        # if standalone or launched outside
+    cmd1 = "".join(["java -cp ", path_to_stairwayplot2, " Stairbuilder ", out_dir, popid, ".blueprint"])
+    
+    output = subprocess.check_output([cmd1], shell=True)
+    output = output.decode(encoding="utf-8")
+    print(output)
+    cmd2 = "".join([ "bash ", out_dir, popid, ".blueprint.sh"])
+    os.system(cmd2)
                     
                     
 def msmc(n, line, header):
