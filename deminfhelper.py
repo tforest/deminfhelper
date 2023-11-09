@@ -20,12 +20,12 @@ from sfs import *
 from plots import *
 
 def parse_args():
-    ## CMD ARGUMENTS 
+    ## CMD ARGUMENTS
 
     parser = argparse.ArgumentParser(description='Computes the sfs from the vcf and runs demography inference softwares.')
 
     #mandatory arguments
-    parser.add_argument("config_file", help="path to the configuration file")
+    parser.add_argument("--config_file", help="path to the configuration file")
 
     #optional arguments
     #SFS
@@ -46,7 +46,56 @@ def parse_args():
     parser.add_argument("--plot_smcpp", help = "to plot smcpp inference", action = "store_true")
     parser.add_argument("--Gplot", help = "to plot all inferences on the same graph", action = "store_true")
 
-    return parser.parse_args()
+    parser.add_argument("--folded", help = "Fold the SFS. Default: True", action = "store_true", default=True)
+
+    # Config args; if no config file
+    parser.add_argument("--popid", help="a population identifier; eg. species name",  type=str)
+    parser.add_argument("--samples", help="a list of samples to use in the VCF. By default all samples are taken.", default="all", type=str)
+    parser.add_argument("--vcf", help="the vcf file path, only gz format",  type=str)
+    parser.add_argument("--gentime", help="the generation time of the species in years. Eg 1.5", type=float)
+    parser.add_argument("--mu", help="the average mutation rate per site per generation")
+    parser.add_argument("--out", help="Output path of the analysis. Will create a dir.",  type=str)
+    parser.add_argument("--L", help="The actual size of the genotyped sequence length that produced the VCF, before any filters.",  type=int)
+    parser.add_argument("--n", help="Number of sequences that produced the VCF. Eg for 5 dipl individuals, n=10.",  type=int)
+
+    args = parser.parse_args()
+    if args.sfs:
+        optional_args = [args.popid, args.vcf, args.out]
+    else:
+        optional_args = [args.popid, args.gentime, args.mu, args.out]
+
+    if not args.config_file and not all(optional_args):
+        parser.error("At least one of the optional arguments is missing: popid, samples, vcf, gentime, mu, out, L, n.\nMaybe you forgot to provide a config file?")
+
+    return args
+
+def parse_yaml_file(file_path):
+    yaml_dict = {}
+    current_dict = yaml_dict
+    stack = []
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if line.startswith("- "):
+                if type(current_dict) is not list:
+                    current_dict = []
+                    stack[-1][key] = current_dict
+                current_dict.append(line[2:])
+            else:
+                key, value = line.split(":", 1)
+                key = key.strip()
+                value = value.strip()
+                if value.startswith("[") and value.endswith("]"):
+                    value = value[1:-1].split(",")
+                    value = [item.strip() for item in value]
+                current_dict[key] = value
+
+    return yaml_dict
+
 
 def parse_config(config_file):
     param = {}
@@ -70,7 +119,7 @@ def parse_config(config_file):
     if "length_cutoff" not in param:
         # default contig size to keep is 1Mb
         param["length_cutoff"] = 100000
-        
+
     return param
 
 def main():
@@ -78,12 +127,46 @@ def main():
     args = parse_args()
 
     ## CONFIG FILE
+    if args.popid is None:
+        param = parse_config(args.config_file)
+    else:
+        program_path = "/".join(os.path.abspath(__file__).split("/")[:-1])+"/"
+        param = {
+            'out_dir': args.out,
+            'vcf': args.vcf,
+            # for now only use as a single pop.
+            'name_pop': [args.popid],
+            'npop': 1,
+            args.popid: args.samples,
+            'folded': args.folded,
+            'gen_time': args.gentime,
+            'mut_rate': args.mu,
+            'out_dir_sfs': args.out+'/output_sfs/',
+            'path_to_sfs': args.out+'/output_sfs/SFS_'+args.popid+'.txt',
+            'path_to_stairwayplot2': program_path+'/bin/stairway_plot_es/',
+            'blueprint_template': program_path+'/bin/template.blueprint',
+            'out_dir_stairwayplot2': args.out+'/output_stairwayplot2/',
+            'summary_file_stw': args.out+'/output_stairwayplot2/hirrus/hirrus.final.summary',
+            'L': args.L,
+            # Dadi params
+            'lower_bound': '1, 1, 0.05, 0.01',
+            'p0': '0.01, 0.001, 0.01, 0.01',
+            'upper_bound': '10, 4, 0.1, 10',
+            'out_dir_dadi': args.out+'/output_dadi/',
+            'out_dir_smcpp': args.out+'/output_smcpp/',
+            'plot_file_smcpp': args.out+'/output_smcpp/hirrus_inference.csv',
+            'out_dir_gq_distrib': args.out+'/output_gq_distrib/',
+            'final_out_dir': args.out+'/inferences/',
+            # default length of contig to keep, useful for SMC++
+            'length_cutoff': 100000
+        }
+        for p in param["name_pop"]:
+            param[p] = param[p].split(",")
+            param["n_"+p] = len(param[p])
 
-    param = parse_config(args.config_file)
 
     #for key in param.keys():
     #    print(key,": ",param[key])
-
 
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
@@ -96,9 +179,9 @@ def main():
 
     # Compute the SFS
 
-    if args.sfs or args.gq_distrib or args.smcpp:
+    if args.sfs or args.gq_distrib:
         res_pars = parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib)
-        if "L" not in param:
+        if not param['L']:
             # Needed estimated number of sequence genotyped.
             # from GADMA
             # Assume total length of sequence that was used for SFS building is equal to Nseq.
@@ -107,7 +190,7 @@ def main():
             # Then we should count filtered SNP’s and take L value the following way:
             # L = (X - Y) / X * Nseq
             param["L"] = res_pars[3]
-            print(param["L"])
+            print("L=", param["L"])
     if args.sfs:
         if not os.path.exists(param["out_dir_sfs"]):
             os.makedirs(param["out_dir_sfs"])
@@ -160,11 +243,14 @@ def main():
                     line=sfs.readline()
                     while line != "":
                         SFS_dict[param["name_pop"][0]] = [int(i) for i in line[:-1].split(",")]
-                        line = sfs.readline() 
+                        line = sfs.readline()
 
-        print(SFS_dict)
         for p in param["name_pop"]:
-            input_stairwayplot2(popid = p, nseq = param["n_"+p]*2, L= param["L"], whether_folded = param["folded"], \
+            if param["folded"]:
+                nseq = len(SFS_dict[p])*2
+            else:
+                nseq = len(SFS_dict[p])
+            input_stairwayplot2(popid = p, nseq = nseq, L= param["L"], whether_folded = param["folded"], \
                             SFS = SFS_dict[p] , mu = param["mut_rate"], year_per_generation = param["gen_time"], \
                             stairway_plot_dir = param["path_to_stairwayplot2"], output_path = param["out_dir_stairwayplot2"], \
                             temp_blueprint = param["blueprint_template"])
@@ -203,7 +289,7 @@ def main():
                         line=sfs.readline()
                         while line != "":
                             SFS_dict[p] = [int(i) for i in line[:-1].split(",")]
-                            line = sfs.readline() 
+                            line = sfs.readline()
 
         for p in param["name_pop"]:
             print(SFS_dict)
@@ -225,12 +311,13 @@ def main():
 
     ##SMCPP
     if args.smcpp:
+        contigs = get_contigs_lengths(param)
         if not os.path.exists(param["out_dir_smcpp"]):
             os.makedirs(param["out_dir_smcpp"])
         for p in param["name_pop"]:
-            contigs = res_pars[2]
+            #contigs = res_pars[2]
             smcpp(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                   out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"], length_cutoff = param["length_cutoff"])
+                   out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"])
     if args.plot_smcpp:
         for p in param["name_pop"]:
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])

@@ -10,6 +10,29 @@ from sfs import *
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
 
+def get_contigs_lengths(param):
+    contigs = []
+    if 'length_cutoff' not in param.keys():
+        param["length_cutoff"] = 100000
+    else:
+        length_cutoff = param["length_cutoff"]
+
+    with gzip.open(param["vcf"], 'rt') as vcf:
+        line = vcf.readline()
+        print(line)
+        while line != "":
+            if line[0:8] == "##contig":
+                # keep only contigs that are longer than the length_cutoff parameter
+                contig_length = int(re.split('[=,]', line)[-1][:-2])
+                if contig_length >= param["length_cutoff"]:
+                    contigs.append(re.split('[=,]', line)[2])
+            if line.startswith("#"):
+                pass
+            else:
+                break
+            line = vcf.readline()
+    return contigs
+
 def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
     # cutoff is the minimum size of each contig to be used
     # required for SMC++, as it works for contigs > 100kb or 1mb
@@ -50,7 +73,7 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                 pass
             if SFS or GQ:
                 All_snp_count += 1
-                if line[0] != "#" and "/." not in line and "./" not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
+                if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
                     Kept_snp_count += 1
                     split_line = line.split("\t")
                     if SFS:
@@ -65,5 +88,3 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
     pbar.close()  # Close the progress bar when done
     L = (All_snp_count - Kept_snp_count) / All_snp_count * Nseq
     return SFS_dict, GQ_dict, contigs, round(L)
-
-

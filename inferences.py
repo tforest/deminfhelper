@@ -50,24 +50,24 @@ def dadi_output_parse(dadi_output_file):
 
 
 def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen):
-    
+
     import dadi
     sfs_folded_hir = dict
-    
+
     print("SFS recent=", sfs_folded_hir)
 
     sfs_list = list(sfs_folded_hir.values())
     fs = dadi.Spectrum(sfs_list, mask_corners = False)
-    
+
     fs.to_file(out_dir_d+"SFS_output.fs")
 
-    # folding SFS (applying a mask ) 
+    # folding SFS (applying a mask )
     fs = fs.fold()
     ns = fs.sample_sizes
 
     pts_l = [ns[0]+5,ns[0]+15,ns[0]+25]
 
-    #Model Definition : Three epoch 
+    #Model Definition : Three epoch
     func = dadi.Demographics1D.three_epoch
 
     param_names= ("nuB","nuF","TB","TF")
@@ -119,9 +119,9 @@ def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen)
     print("T_scaled_gen", scaled_popt[2])
 
 
-    
 
-    
+
+
 
 
 
@@ -144,7 +144,7 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
         while line != '':
             if line.split(':')[0] in locals().keys():
                 if line.split(':')[0] == 'SFS':
-                    out_file.write('sfs: ' + ' '.join(map(str, SFS)) + '\n') 
+                    out_file.write('sfs: ' + ' '.join(map(str, SFS)) + '\n')
                 else:
                     out_file.write(line.split(':')[0]+': '+ str(locals().get(line.split(':')[0]))+'\n')
             elif line.split(':')[0] == "nrand" :
@@ -158,7 +158,7 @@ def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     #     cmd1 = "".join(["qsub -cwd -V -N stairwayplot2_", popid, " -o /home/tforest/work/birdsdemography/out.err/stairwayplot2_", popid, ".out -e /home/tforest/work/birdsdemography/out.err/stairwayplot2_", \
     #                     popid, ".err -q short.q -b y 'java -cp ", path_to_stairwayplot2, " Stairbuilder ", out_dir, popid, ".blueprint'"])
     #     #print(cmd1)
-    #     output = subprocess.check_output([cmd1], shell=True) 
+    #     output = subprocess.check_output([cmd1], shell=True)
     #     job_submit_output = output.decode(encoding="utf-8")
     #     submitted_job_id = job_submit_output.split(" ")[2] #liste de l'ID des jobs
     #     #print(submitted_job_id)
@@ -170,14 +170,14 @@ def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     # else:
         # if standalone or launched outside
     cmd1 = "".join(["java -cp ", path_to_stairwayplot2, " Stairbuilder ", out_dir, popid, ".blueprint"])
-    
+
     output = subprocess.check_output([cmd1], shell=True)
     output = output.decode(encoding="utf-8")
     print(output)
     cmd2 = "".join([ "bash ", out_dir, popid, ".blueprint.sh"])
     os.system(cmd2)
-                    
-                    
+
+
 def msmc(n, line, header):
     if header :
         if ("##fileformat" in line) :
@@ -197,7 +197,7 @@ def msmc(n, line, header):
                 vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='a')
                 vcf_msmc.write(header+'\t'+indiv.split("\t")[k]+'\n')
                 vcf_msmc.close()
-    else : 
+    else :
         gens=re.findall('./.',line)
         for k in range(n):
             vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='a')
@@ -211,48 +211,32 @@ def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     #subprocess.run(['/home/tforest/work/birdsdemography/smcp.sh','contigs','POP'],shell=True)
     jobs_list = []
     for contig in contigs:
-        cmd1 = "".join(["qsub -cwd -V -N smcpp_", popid, "_", contig, " -o /home/tforest/work/birdsdemography/out.err/smcpp_", popid, "_", contig, \
-                       ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_", popid,"_", contig, \
-                       ".err -q short.q -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ vcf2smc ", vcf, " ", out_dir, popid, "_", contig, ".smc.gz ", contig, " ", POP, "'"])
-        #print(cmd1)
+        # cmd1 = "".join(["qsub -cwd -V -N smcpp_", popid, "_", contig, " -o /home/tforest/work/birdsdemography/out.err/smcpp_", popid, "_", contig, \
+        #                ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_", popid,"_", contig, \
+        #                ".err -q short.q -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ vcf2smc ", vcf, " ", out_dir, popid, "_", contig, ".smc.gz ", contig, " ", POP, "'"])
+        # #print(cmd1)
+        cmd1 = "".join(["smc++ vcf2smc ", vcf, " ", out_dir, popid, "_", contig, ".smc.gz ", contig, " ", POP, ""])
         output = subprocess.check_output([cmd1], shell=True)
-        job_submit_output = output.decode(encoding="utf-8")
-        submitted_job_id = job_submit_output.split(" ")[2] #liste de l'ID des jobs
+        output = output.decode(encoding="utf-8")
+        print(output)
+        #submitted_job_id = job_submit_output.split(" ")[2] #liste de l'ID des jobs
         #submitted_job_id = '143843'
-        jobs_list.append(str(submitted_job_id))
-    cmd2 = "".join(["qsub -cwd -V -N smcpp_inf_", popid, " -o /home/tforest/work/birdsdemography/out.err/smcpp_inf_", popid, \
-                    ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_inf_", popid, \
-                    ".err -q short.q -hold_jid ", ",".join(jobs_list), " -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ estimate -o ", out_dir, popid, "_model.final.json ", mu, \
-                    " ", out_dir, popid, "_*.smc.gz'"])
+        #jobs_list.append(str(submitted_job_id))
+    # once vcf2smc is executed for each contig, run for all of them
+    # cmd2 = "".join(["qsub -cwd -V -N smcpp_inf_", popid, " -o /home/tforest/work/birdsdemography/out.err/smcpp_inf_", popid, \
+    #                 ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_inf_", popid, \
+    #                 ".err -q short.q -hold_jid ", ",".join(jobs_list), " -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ estimate -o ", out_dir, popid, "_model.final.json ", mu, \
+    #                 " ", out_dir, popid, "_*.smc.gz'"])
+    cmd2 = "".join(["smc++ estimate -o ", out_dir, popid, "_model.final.json ", mu, " ", out_dir, popid, "_*.smc.gz'"])
     #print(cmd2)
     output2 = subprocess.check_output([cmd2], shell=True)
-    job_submit_output2 = output2.decode(encoding="utf-8")
-    submitted_job_id2 = job_submit_output2.split(" ")[2] #liste de l'ID des jobs
-    cmd3 = "".join(["qsub -cwd -V -N smcpp_plot_", popid, " -o /home/tforest/work/birdsdemography/out.err/smcpp_plot_", popid, \
-                ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_plot_", popid, \
-                ".err -q short.q -hold_jid ", submitted_job_id2, " -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ plot ", \
-                out_dir, popid, "_inference.png ", out_dir, popid, "_model.final.json/model.final.json -g", str(gen_time)," -c '"])
+    output2 = output2.decode(encoding="utf-8")
+    print(output2)
+    #submitted_job_id2 = job_submit_output2.split(" ")[2] #liste de l'ID des jobs
+    # cmd3 = "".join(["qsub -cwd -V -N smcpp_plot_", popid, " -o /home/tforest/work/birdsdemography/out.err/smcpp_plot_", popid, \
+    #             ".out -e /home/tforest/work/birdsdemography/out.err/smcpp_plot_", popid, \
+    #             ".err -q short.q -hold_jid ", submitted_job_id2, " -b y '/home/tforest/work/.conda/envs/smcpp/bin/smc++ plot ", \
+    #             out_dir, popid, "_inference.png ", out_dir, popid, "_model.final.json/model.final.json -g", str(gen_time)," -c '"])
+    cmd3 = "".join(["smc++ plot ", out_dir, popid, "_inference.png ", out_dir, popid, "_model.final.json/model.final.json -g", str(gen_time)," -c '"])
     os.system(cmd3)
     #print(cmd3)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
