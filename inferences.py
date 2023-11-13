@@ -182,8 +182,11 @@ def msmc(n, line, header):
 def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     POP = popid+":"+",".join(pop_ind)
     jobs_list = []
+    if len(contigs) == 0:
+        print("Error! No contigs to use! Make sure the threshold matches your data.")
     for contig in contigs:
         cmd1 = ["smc++", "vcf2smc", vcf, out_dir+popid+"_"+contig+".smc.gz", contig, POP]
+        print("LOG", out_dir+popid+"_"+contig+"_vcf2smc.log")
         with open(out_dir+popid+"_"+contig+"_vcf2smc.log", 'w') as log:
             p=subprocess.Popen(cmd1,stdout=log)
     p.wait()
