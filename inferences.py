@@ -8,6 +8,7 @@ import re
 import os
 import subprocess
 import itertools
+import multiprocessing
 #import dadi
 
 def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
@@ -178,10 +179,65 @@ def msmc(n, line, header):
             vcf_msmc.write('\t'.join(line.split("\t")[0:9])+"\t"+gens[k]+"\n")
             vcf_msmc.close()
 
+def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
+    #TODO
+    #contigs = contigs[:4]
+    if len(contigs) == 0:
+        print("Error! No contigs to use! Make sure the threshold matches your data.")
 
+    # Get the available CPUs
+    available_cpus = list(range(multiprocessing.cpu_count()))
+    # Choose the first 'num_cpus' CPUs
+    cpu_affinity = available_cpus[:num_cpus]
+
+    for contig in contigs:
+        # split in separated vcfs
+        cmd2 = " ".join(["bcftools", "view", "-t", contig, vcf, "|",
+                "bcftools", "query", "-", "-f", "'%INFO/DP\n'", "|",
+                "awk '{ sum += $1 } END { print sum/NR }'"])
+        print(cmd2)
+        with open(out_dir+contig+"_mean_DP.txt", 'w') as log:
+            process = subprocess.Popen(cmd2, shell=True, stdout=log)
+            # Set CPU affinity
+            process_pid = process.pid
+            os.sched_setaffinity(process_pid, cpu_affinity)
+    process.wait()
+    # need to add asynchronous. Some jobs finish before others
+    for contig in contigs:
+        # now that we have coverage, run in parallel the vcf.gz splitting
+        with open(out_dir+contig+"_mean_DP.txt", 'r') as filin:
+            meanDP=float(filin.readline().strip())
+        minDP = meanDP/2
+        maxDP = meanDP*2
+        # omit sites with missing data "./."
+        cmd3 = " ".join(["bcftools view -g ^miss -t", contig, vcf,
+        "|vcftools --vcf - --minDP", str(minDP), "--maxDP", str(maxDP),
+        "--recode --stdout | gzip -c >", out_dir+contig+".vcf.gz"])
+        print(cmd3)
+        process = subprocess.Popen(cmd3, shell=True)
+        # Set CPU affinity
+        process_pid = process.pid
+        os.sched_setaffinity(process_pid, cpu_affinity)
+    process.wait()
+    deminfhelper_directory = os.path.dirname(os.path.abspath(__file__))
+    for contig in contigs:
+        cmd4 = " ".join(["python3",
+        deminfhelper_directory+"/scripts/msmc-tools/generate_multihetsep.py",
+        contig+".vcf.gz", ">", out_dir+contig+"_msmc_input.txt"])
+        print(cmd4)
+        with open(out_dir+contig+"_msmc_input.log", 'w') as log:
+            process = subprocess.Popen(cmd4, shell=True, stdout=log)
+            # Set CPU affinity
+            process_pid = process.pid
+            os.sched_setaffinity(process_pid, cpu_affinity)
+    process.wait()
+    # Run MSMC2 combining information from all contigs
+    cmd5 = " ".join(["msmc2_Linux", out_dir+"*_msmc_input.txt -o", out_dir+popid+"_msmc2"])
+    print(cmd5)
+    with open(popid+"_msmc2.log", 'w') as log:
+        p=subprocess.Popen(cmd5,stdout=log, shell=True)
 def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     POP = popid+":"+",".join(pop_ind)
-    jobs_list = []
     if len(contigs) == 0:
         print("Error! No contigs to use! Make sure the threshold matches your data.")
     for contig in contigs:

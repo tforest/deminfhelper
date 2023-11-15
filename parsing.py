@@ -10,21 +10,21 @@ from sfs import *
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
 
-def get_contigs_lengths(param):
+def get_contigs_lengths(param, length_cutoff=100000):
     contigs = []
     if 'length_cutoff' not in param.keys():
-        param["length_cutoff"] = 100000
+        param["length_cutoff"] = length_cutoff
     else:
         length_cutoff = param["length_cutoff"]
 
     with gzip.open(param["vcf"], 'rt') as vcf:
         line = vcf.readline()
-        print(line)
+        #print(line)
         while line != "":
             if line[0:8] == "##contig":
                 # keep only contigs that are longer than the length_cutoff parameter
                 contig_length = int(re.split('[=,]', line)[-1][:-2])
-                if contig_length >= param["length_cutoff"]:
+                if contig_length >= length_cutoff:
                     contigs.append(re.split('[=,]', line)[2])
             if line.startswith("#"):
                 pass

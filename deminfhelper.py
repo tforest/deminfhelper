@@ -37,8 +37,8 @@ def parse_args():
     parser.add_argument("--plot_stairwayplot2", help = "to run stairwayplot2", action = "store_true")
     #Dadi
     parser.add_argument("--dadi", help = "to run dadi: the sfs must not be transformed", action = "store_true")
-    #MSMC
-    parser.add_argument("--msmc", help = "to run msmc: the sfs must not be transformed", action = "store_true")
+    #MSMC2
+    parser.add_argument("--msmc2", help = "to run msmc: the sfs must not be transformed", action = "store_true")
     #PL distribution
     parser.add_argument("--gq_distrib", help = "to compute the GQ (genotype quality) distribution", action = "store_true")
     #SMCPP
@@ -309,7 +309,7 @@ def main():
         for p in param["name_pop"]:
             plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"] )
 
-    ##SMCPP
+    ##SMC++
     if args.smcpp:
         contigs = get_contigs_lengths(param)
         if not os.path.exists(param["out_dir_smcpp"]):
@@ -318,6 +318,15 @@ def main():
             #contigs = res_pars[2]
             smcpp(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"])
+    ##MSMC2
+    if args.msmc2:
+        contigs = get_contigs_lengths(param)
+        if not os.path.exists(param["out_dir_msmc2"]):
+            os.makedirs(param["out_dir_msmc2"])
+        for p in param["name_pop"]:
+            #contigs = res_pars[2]
+            msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
+                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"])
     if args.plot_smcpp:
         for p in param["name_pop"]:
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])
