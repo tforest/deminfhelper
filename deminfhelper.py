@@ -38,7 +38,9 @@ def parse_args():
     #Dadi
     parser.add_argument("--dadi", help = "to run dadi: the sfs must not be transformed", action = "store_true")
     #MSMC2
-    parser.add_argument("--msmc2", help = "to run msmc: the sfs must not be transformed", action = "store_true")
+    parser.add_argument("--msmc2", help = "to run msmc2", action = "store_true")
+    #PSMC
+    parser.add_argument("--psmc", help = "to run PSMC", action = "store_true")
     #PL distribution
     parser.add_argument("--gq_distrib", help = "to compute the GQ (genotype quality) distribution", action = "store_true")
     #SMCPP
@@ -327,6 +329,15 @@ def main():
             #contigs = res_pars[2]
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"])
+    ##PSMC
+    if args.psmc:
+        contigs = get_contigs_lengths(param)
+        if not os.path.exists(param["out_dir_psmc"]):
+            os.makedirs(param["out_dir_psmc"])
+        for p in param["name_pop"]:
+            #contigs = res_pars[2]
+            psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
+                   out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
     if args.plot_smcpp:
         for p in param["name_pop"]:
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])

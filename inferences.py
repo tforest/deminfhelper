@@ -236,6 +236,43 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
     print(cmd5)
     with open(popid+"_msmc2.log", 'w') as log:
         p=subprocess.Popen(cmd5,stdout=log, shell=True)
+def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
+    # Get the available CPUs
+    available_cpus = list(range(multiprocessing.cpu_count()))
+    # Choose the first 'num_cpus' CPUs
+    cpu_affinity = available_cpus[:num_cpus]
+
+    #TODO
+    # for sample in pop_ind:
+    #     cmd1 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "-o", out_dir+"consensus_"+sample+".fa"])
+    #     with open(out_dir+sample+"_consensus.log", 'w') as log:
+    #         process = subprocess.Popen(cmd1, shell=True, stdout=log)
+    #         # Set CPU affinity
+    #         process_pid = process.pid
+    #         os.sched_setaffinity(process_pid, cpu_affinity)
+    # process.wait()
+    for sample in pop_ind:
+        cmd2 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "|",
+        # read from stdin
+        "seqtk seq -F '#'", "-", "|",
+        "bgzip >", out_dir+"consensus_"+sample+".fq.gz", ";",
+        "fq2psmcfa -q1", out_dir+"consensus_"+sample+".fq.gz", ">", out_dir+sample+"_diploid.psmcfa", ";"
+        "psmc -N30 -t15 -r5 -p '10+22*2+4+6' -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa"])
+        print(cmd2)
+        with open(out_dir+sample+"_consensus.log", 'w') as log:
+            process = subprocess.Popen(cmd2, shell=True, stdout=log)
+            # Set CPU affinity
+            process_pid = process.pid
+            os.sched_setaffinity(process_pid, cpu_affinity)
+    process.wait()
+    cmd3 = " ".join(["cat", out_dir+"*.psmc >", out_dir+"combined.psmc.final", ";"
+    "psmc_plot.pl", "-g", gen_time, "-x", "10", "-u", mu, "-M '"+",".join(pop_ind)+"'", popid, out_dir+"combined.psmc.final" ,";",
+    "mv", popid+".*.par", out_dir, "; mv", popid+"*.eps", out_dir])
+    print(cmd3)
+    with open(out_dir+popid+"_psmc_combine.log", 'w') as log:
+        p=subprocess.Popen(cmd3,stdout=log, shell=True)
+    p.wait()
+
 def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     POP = popid+":"+",".join(pop_ind)
     if len(contigs) == 0:
