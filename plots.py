@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Plot  the plots
@@ -7,7 +7,7 @@ Plot  the plots
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-
+import pandas as pd
 
 def plot_sfs(sfs, plot_title, output_file):
     plt.bar(np.arange(1, len(sfs)+1), sfs)
@@ -42,8 +42,27 @@ def plot_stairwayplot2(popid, summary_file, out_dir):
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_stw_inference.png")
     plt.close()
-    
-    
+
+def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
+    #scaled_left_bound = np.array()
+    mu = float(mu)
+    gen_time = float(gen_time)
+    df = pd.read_csv(summary_file, delimiter='\t')
+    # Scale Time
+    # from units of the per-generation mutation rate to generations
+    # to do this, divid by mutation rate
+    scaled_left_bound = df['left_time_boundary']/mu * gen_time
+    scaled_right_bound = df['right_time_boundary']/mu * gen_time
+    # Pop Size
+    scaled_pop = 1/df['lambda']
+    pop_size_change = scaled_pop / (2*mu)
+    plt.plot(scaled_left_bound, pop_size_change,color="blue")
+    plt.title(popid)
+    plt.xlabel('Time (in years)')
+    plt.ylabel('Ne')
+    plt.savefig(out_dir+popid+"_msmc2_inference.png")
+    plt.close()
+
 def plot_distrib_gq(popid, gq, out_dir_gq):
     gq = OrderedDict(sorted(gq.items()))
     names = list(gq.keys())
@@ -55,7 +74,7 @@ def plot_distrib_gq(popid, gq, out_dir_gq):
     plt.ylabel('Numbre of sites')
     plt.savefig(out_dir_gq+popid + "_gq_distrib.png")
     plt.close()
-    
+
 
 def plot_smcpp(popid, summary_file, out_dir):
     Ne=[]
@@ -74,7 +93,7 @@ def plot_smcpp(popid, summary_file, out_dir):
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_smcpp_inference.png")
     plt.close()
-    
+
 
 def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, xlim, ylim, max_v = -10**6, title="Dadi pop. estimates"):
     with open(T_scaled_gen) as fo:
@@ -87,7 +106,7 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
         dadi_params[2][2]*=T_scaled_years
         dadi_params[2][3]*=T_scaled_years
     best_model = None
-#bad models : 
+#bad models :
     for elem in dadi_vals_list:
         popt = elem[2]
         if elem[1] > max_v:
@@ -96,7 +115,7 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
         x =  [0, popt[3], popt[3], popt[3]+popt[2], popt[3]+popt[2], (popt[3]+popt[2])+0.01]
         y = [popt[1], popt[1], popt[0], popt[0], 1, 1]
         plt.plot(x, y, '--', alpha = 0.4)
-#best model : 
+#best model :
     best_x = [0, best_model[3], best_model[3], best_model[3]+best_model[2], best_model[3]+best_model[2], (best_model[3]+best_model[2])+0.01]
     print("BEST",best_x)
     best_y = [best_model[1], best_model[1], best_model[0], best_model[0], 1, 1]
@@ -141,13 +160,6 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     Nanc=str.split(t_scaled_gen,", ")[0]
     #t_scaled_gen=[i*float(t_scaled_gen) for i in best_x]
     plt.plot(best_x, best_y,color="green")
-    
-    
-
-
-
-
-
     Ne=[]
     T=[]
     with open(summary_file2) as input_file2:
@@ -159,12 +171,6 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
             T.append(float(line.split(',')[1]))
             line = input_file2.readline()
     plt.plot(T,[i/(2*Ne[-1]) for i in Ne],color="blue")
-
-
-
-
-
-
 
     Ne_med=[]
     Ne1=[]
@@ -189,17 +195,3 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     plt.ylabel('Na')
     plt.savefig(out_dir+popid+"_GPLOT_inference.png")
     plt.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument("--dadi", help = "to run dadi: the sfs must not be transformed", action = "store_true")
     #MSMC2
     parser.add_argument("--msmc2", help = "to run msmc2", action = "store_true")
+    parser.add_argument("--plot_msmc2", help = "to plot msmc2", action = "store_true")
     #PSMC
     parser.add_argument("--psmc", help = "to run PSMC", action = "store_true")
     #PL distribution
@@ -274,6 +275,10 @@ def main():
                                out_dir = param["final_out_dir"])
 
 
+    if args.plot_msmc2:
+        for p in param["name_pop"]:
+            plot_msmc2(popid = p, summary_file = "".join([param["out_dir_msmc2"], "/", p, "_msmc2.final.txt"]), \
+                           mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"])
 
 
     # Run dadi
