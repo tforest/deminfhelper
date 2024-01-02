@@ -237,11 +237,6 @@ def main():
                 print("--sfs flag or path_to_sfs missing")
             else:
                 SFS_dict = {}
-    #            with open(param["path_to_sfs_"+p], "rt") as sfs:
-    #                line=sfs.readline()
-    #                while line != "":
-    #                    SFS_dict[line[:-1].split(": ")[0]] = [int(i) for i in line[:-1].split(": ")[1].split(",")]
-    #                    line = sfs.readline()
                 with open(param["path_to_sfs"], "rt") as sfs:
                     line=sfs.readline()
                     while line != "":
@@ -283,7 +278,6 @@ def main():
 
     # Run dadi
     if args.dadi:
-        import dadi
         if not os.path.exists(param["out_dir_dadi"]):
             os.makedirs(param["out_dir_dadi"])
         if args.sfs == False:
@@ -299,14 +293,15 @@ def main():
                             line = sfs.readline()
 
         for p in param["name_pop"]:
-            print(SFS_dict)
+            #print(SFS_dict)
             DICT = {i : j for i, j in zip([i for i in range(0,2*len(SFS_dict[p]))], SFS_dict[p]+[0]*len(SFS_dict[p]))}
+            #print(DICT)
             input_dadi(popid = p, sfs = SFS_dict[p], folded = param["folded"], n = param["n_"+p], \
                        mask = True, out_dir = param["out_dir_dadi"])
-            print (type(param["lower_bound"]))
-            dadi_inf(popid = p, out_dir_d = param["out_dir_dadi"],out_dir=param["out_dir"],dict=DICT,p=p,lower_bound=[float(x) for x in str.split(param["lower_bound"],',')],upper_bound=[float(x) for x in str.split(param["upper_bound"],',')],p0=[float(x) for x in str.split(param["p0"],',')],mu=param["mut_rate"],L=param["L"],gen=param["gen_time"])
-            all_vals_recent = dadi_output_parse(param["out_dir_dadi"]+"output_"+p+".dadi")
-            print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",dadi_vals_list=all_vals_recent,out_dir=param["out_dir"], title =p, xlim = False, ylim =False,name_pop=p)
+            # print (type(param["lower_bound"]))
+            # dadi_inf(popid = p, out_dir_d = param["out_dir_dadi"],out_dir=param["out_dir"],dict=DICT,p=p,lower_bound=[float(x) for x in str.split(param["lower_bound"],',')],upper_bound=[float(x) for x in str.split(param["upper_bound"],',')],p0=[float(x) for x in str.split(param["p0"],',')],mu=param["mut_rate"],L=param["L"],gen=param["gen_time"])
+            # all_vals_recent = dadi_output_parse(param["out_dir_dadi"]+"output_"+p+".dadi")
+            # print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",dadi_vals_list=all_vals_recent,out_dir=param["out_dir"], title =p, xlim = False, ylim =False,name_pop=p)
 
     #GQ distribution
     if args.gq_distrib:

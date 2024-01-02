@@ -9,7 +9,7 @@ import os
 import subprocess
 import itertools
 import multiprocessing
-#import dadi
+import dadi
 
 def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
     #writes the input file to run dadi
@@ -277,6 +277,10 @@ def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     POP = popid+":"+",".join(pop_ind)
     if len(contigs) == 0:
         print("Error! No contigs to use! Make sure the threshold matches your data.")
+        with open(out_dir+popid+"_model.final.json", 'w') as output:
+            output.write("There was an error with SMC++. Please check the logs.")
+        exit(0)
+
     for contig in contigs:
         cmd1 = ["smc++", "vcf2smc", vcf, out_dir+popid+"_"+contig+".smc.gz", contig, POP]
         print("LOG", out_dir+popid+"_"+contig+"_vcf2smc.log")
