@@ -151,7 +151,7 @@ def main():
             'gen_time': args.gentime,
             'mut_rate': args.mu,
             'out_dir_sfs': args.out+'/output_sfs/',
-            'path_to_sfs': args.out+'/output_sfs/SFS_'+args.popid+'.txt',
+            'path_to_sfs': args.out+'/output_sfs/SFS_'+args.popid+'.fs',
             'path_to_stairwayplot2': program_path+'/bin/stairway_plot_es/',
             'blueprint_template': program_path+'/bin/template.blueprint',
             'out_dir_stairwayplot2': args.out+'/output_stairwayplot2/',
@@ -215,7 +215,7 @@ def main():
             else:
                 folded_string = "unfolded"
                 n_bins = len(SFS_dict[p])
-            with open(param["out_dir_sfs"]+"SFS_"+p+".txt", 'w') as sfs_out:
+            with open(param["out_dir_sfs"]+"SFS_"+p+".fs", 'w') as sfs_out:
                 sfs_out.write(str(n_bins)+" "+folded_string+" "+'"'+p+'"\n')
                 sfs_out.write(" ".join(map(str, SFS_dict[p])))
                 if param["folded"]:
@@ -239,9 +239,13 @@ def main():
                         sfs_out.write("0 ")
                 # trailing carriage return
                 sfs_out.write("\n")
-                        
-            if args.plot_sfs:
-                plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+p+".png")
+                
+    if args.plot_sfs:
+        SFS_dict = {}
+        for p in param["name_pop"]:
+            sfs_list = parse_sfs(param["path_to_sfs"])
+            SFS_dict[param["name_pop"][0]] = sfs_list
+            plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
 
 
     if args.sfs_transformed:
@@ -322,28 +326,16 @@ def main():
         if not os.path.exists(param["out_dir_dadi"]):
             os.makedirs(param["out_dir_dadi"])
         if args.sfs == False:
-            SFS_dict = {}
             for p in param["name_pop"]:
                 if "path_to_sfs" not in param.keys():
                     print("--sfs flag or path_to_sfs missing")
-                else:
-                    with open(param["path_to_sfs"], "rt") as sfs:
-                        line=sfs.readline()
-                        while line != "":
-                            SFS_dict[p] = [int(i) for i in line[:-1].split(",")]
-                            line = sfs.readline()
-
+                    exit(0)
         for p in param["name_pop"]:
-            #print(SFS_dict)
-            DICT = {i : j for i, j in zip([i for i in range(0,2*len(SFS_dict[p]))], SFS_dict[p]+[0]*len(SFS_dict[p]))}
-            #print(DICT)
-            input_dadi(popid = p, sfs = SFS_dict[p], folded = param["folded"], n = param["n_"+p], \
-                       mask = True, out_dir = param["out_dir_dadi"])
-            # print (type(param["lower_bound"]))
-            # dadi_inf(popid = p, out_dir_d = param["out_dir_dadi"],out_dir=param["out_dir"],dict=DICT,p=p,lower_bound=[float(x) for x in str.split(param["lower_bound"],',')],upper_bound=[float(x) for x in str.split(param["upper_bound"],',')],p0=[float(x) for x in str.split(param["p0"],',')],mu=param["mut_rate"],L=param["L"],gen=param["gen_time"])
-            # all_vals_recent = dadi_output_parse(param["out_dir_dadi"]+"output_"+p+".dadi")
-            # print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",dadi_vals_list=all_vals_recent,out_dir=param["out_dir"], title =p, xlim = False, ylim =False,name_pop=p)
-
+            run_dadi_cli(popid = p, out_dir = param["out_dir_dadi"],
+                         sfs_path = param["out_dir_sfs"]+"SFS_"+p+".fs",
+                         lower_bounds = eval(param["lower_bound"]),
+                         upper_bounds = eval(param["upper_bound"]))
+           
     #GQ distribution
     if args.gq_distrib:
         if not os.path.exists(param["out_dir_gq_distrib"]):

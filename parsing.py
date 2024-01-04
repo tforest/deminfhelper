@@ -51,7 +51,7 @@ def parse_sfs(sfs_file):
             # print(f"Masked spectrum: {masked_spectrum}")
 
     except FileNotFoundError:
-        print(f"Error: File not found - {file_path}")
+        print(f"Error: File not found - {sfs_file}")
     except ValueError as ve:
         print(f"Error: {ve}")
     except Exception as e:

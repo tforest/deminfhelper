@@ -117,6 +117,16 @@ def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen)
     print("theta", theta)
     print("T_scaled_gen", scaled_popt[2])
 
+def run_dadi_cli(popid, out_dir, sfs_path, optimizations=1000, lower_bounds = [0.1, 0.1, 0.1, 0.1],
+                 upper_bounds = [50, 5, 30, 10]):
+    # create dadi file
+    cmd1 = "".join(["dadi-cli InferDM --fs ", sfs_path, \
+                    " --model three_epoch --lbounds ", " ".join(map(str, lower_bounds)), \
+                    " --ubounds ", " ".join(map(str, upper_bounds)), " --output ", \
+                    out_dir+str(popid)+".dadi", " --optimizations ", str(optimizations)])
+    print(cmd1)
+    os.system(cmd1)
+    
 
 def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_generation, stairway_plot_dir, output_path, temp_blueprint):
     #writes the input file to run stairwayplot2
