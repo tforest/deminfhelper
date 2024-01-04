@@ -203,6 +203,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
             os.sched_setaffinity(process_pid, cpu_affinity)
     process.wait()
     # need to add asynchronous. Some jobs finish before others
+    # IMPORTANT : Causes crashes with empty files and cannot convert string to float
     for contig in contigs:
         # now that we have coverage, run in parallel the vcf.gz splitting
         with open(out_dir+contig+"_mean_DP.txt", 'r') as filin:

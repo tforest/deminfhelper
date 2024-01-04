@@ -14,11 +14,17 @@ import os
 
 
 ## IMPORT CUSTOM FUNCTIONS
-from parsing import *
-from inferences import *
-from sfs import *
-from plots import *
-
+if __package__ is None or __package__ == '':
+    from parsing import *
+    from inferences import *
+    from sfs import *
+    from plots import *
+else:
+    from .parsing import * 
+    from .inferences import *
+    from .sfs import *
+    from .plots import *
+    
 def parse_args():
     ## CMD ARGUMENTS
 
@@ -196,11 +202,44 @@ def main():
             print("L=", param["L"])
     if args.sfs:
         if not os.path.exists(param["out_dir_sfs"]):
+            # create the sfs output directory if it does not exists
             os.makedirs(param["out_dir_sfs"])
         SFS_dict = res_pars[0]
         for p in param["name_pop"]:
+            if param["folded"]:
+                # if folded is set to True, store in a string the SFS state
+                # for later use. 
+                folded_string = "folded"
+                # Warning! n_bins*2 only for diploids
+                n_bins = len(SFS_dict[p]) * 2
+            else:
+                folded_string = "unfolded"
+                n_bins = len(SFS_dict[p])
             with open(param["out_dir_sfs"]+"SFS_"+p+".txt", 'w') as sfs_out:
-                sfs_out.write(",".join(map(str, SFS_dict[p]))+"\n")
+                sfs_out.write(str(n_bins)+" "+folded_string+" "+'"'+p+'"\n')
+                sfs_out.write(" ".join(map(str, SFS_dict[p])))
+                if param["folded"]:
+                    sfs_out.write(" 0"*len(SFS_dict[p])+"\n")
+                else:
+                    # add the trailing carriage return
+                    sfs_out.write("\n")
+                # generate the mask for a valid dadi.Fs spectrum
+                for sfs_bin in range(n_bins):
+                    if sfs_bin == 0:
+                        # Mask the sfs[0] monomorphic sites
+                        sfs_out.write("1 ")
+                    elif (param["folded"] == False and sfs_bin == len(SFS_dict[p])):
+                        # Mask if it the last bin of the SFS and unfolded sfs
+                        sfs_out.write("1 ")
+                    elif param["folded"] == True and sfs_bin > (n_bins / 2)-1:
+                        # Mask all sites that are null in the SFS for folded spectra
+                        sfs_out.write("1 ")
+                    else:
+                        # Part that is not masked
+                        sfs_out.write("0 ")
+                # trailing carriage return
+                sfs_out.write("\n")
+                        
             if args.plot_sfs:
                 plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+p+".png")
 
@@ -237,11 +276,13 @@ def main():
                 print("--sfs flag or path_to_sfs missing")
             else:
                 SFS_dict = {}
-                with open(param["path_to_sfs"], "rt") as sfs:
-                    line=sfs.readline()
-                    while line != "":
-                        SFS_dict[param["name_pop"][0]] = [int(i) for i in line[:-1].split(",")]
-                        line = sfs.readline()
+                sfs_list = parse_sfs(param["path_to_sfs"])
+                SFS_dict[param["name_pop"][0]] = sfs_list
+                # with open(param["path_to_sfs"], "rt") as sfs:
+                #     line=sfs.readline()
+                #     while line != "":
+                #         SFS_dict[param["name_pop"][0]] = [int(i) for i in line[:-1].split(",")]
+                #         line = sfs.readline()
 
         for p in param["name_pop"]:
             if param["folded"]:

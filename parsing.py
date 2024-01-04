@@ -5,11 +5,59 @@ if MSMC=False
 """
 
 import gzip
-from inferences import *
-from sfs import *
+# from inferences import *
+
+if __package__ is None or __package__ == '':
+    import inferences
+    import sfs
+else:
+    from . import inferences
+    from . import sfs
+
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
 
+def parse_sfs(sfs_file):
+    try:
+        with open(sfs_file, 'r') as file:
+            # Read the first line which contains information about the file
+            num_individuals, mode, species_name = file.readline().strip().split()
+            num_individuals = int(num_individuals)
+
+            # print(f"Number of individuals: {num_individuals}")
+            # print(f"Mode: {mode}")
+            # print(f"Species name: {species_name}")
+
+            # Read the spectrum data
+            spectrum_data = list(map(int, file.readline().strip().split()))
+
+            # Check if the number of bins in the spectrum matches the expected number
+            if len(spectrum_data) != num_individuals:
+                raise ValueError("Error: Number of bins in the spectrum doesn't match the expected number of individuals.")
+
+            # print(f"Spectrum data: {spectrum_data}")
+
+            # Read the mask data
+            mask_data = list(map(int, file.readline().strip().split()))
+
+            # Check if the size of the mask matches the number of bins in the spectrum
+            if len(mask_data) != num_individuals:
+                raise ValueError("Error: Size of the mask doesn't match the number of bins in the spectrum.")
+
+            # print(f"Mask data: {mask_data}") 
+
+            # Apply the mask to the spectrum
+            masked_spectrum = [spectrum_data[i] for i in range(num_individuals) if not mask_data[i]]
+            # print(f"Masked spectrum: {masked_spectrum}")
+
+    except FileNotFoundError:
+        print(f"Error: File not found - {file_path}")
+    except ValueError as ve:
+        print(f"Error: {ve}")
+    except Exception as e:
+        print(f"Error: {e}")
+    # final return of SFS as a list
+    return masked_spectrum
 def get_contigs_lengths(param, length_cutoff=100000):
     contigs = []
     if 'length_cutoff' not in param.keys():
@@ -47,7 +95,7 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
         if SFS:
             # we initialize a sfs for each population
             for p in PARAM["name_pop"]:
-                SFS_dict[p] = build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True)
+                SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True)
         if GQ:
             for p in PARAM["name_pop"]:
                         GQ_dict[p] = {}
@@ -78,7 +126,7 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                     split_line = line.split("\t")
                     if SFS:
                         for p in PARAM["name_pop"]:
-                            SFS_dict[p] = build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
+                            SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
                                     line = split_line, sfs = SFS_dict[p], pos_ind = PARAM["pos_"+p])
                     if GQ:
                         for p in PARAM["name_pop"]:

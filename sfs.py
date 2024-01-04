@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
 build_sfs (n, folded,sfs_ini, line='', sfs=[]) : compute the sfs
 transform_sfs(sfs, n, folded) : transforms the sfs
@@ -11,9 +9,9 @@ import numpy as np
 def build_sfs(n, folded, sfs_ini, line=[], sfs=[], pos_ind = None):
     if sfs_ini:
         if folded:
-            return [0] * n
+            return [0]+[0] * n
         else:
-            return [0] * (2 * n - 1)
+            return [0]+[0] * (2 * n - 1)
     else:
         geno_ind = [line[i] for i in pos_ind]
         gen = list(itertools.chain.from_iterable([[int(i[0]), int(i[2])] for i in geno_ind])) #we get the genotypes
@@ -22,9 +20,9 @@ def build_sfs(n, folded, sfs_ini, line=[], sfs=[], pos_ind = None):
             count=min(sum(gen), 2*n-sum(gen)) #if folded, we count the minor allele
         else:
             count=sum(gen) #if not folded, we count the alternate allele (1)
-        if count != 0 and (folded) or (not folded and count != 2*n): #we remove the monomorphic sites
-            #print(gen)
-            sfs[count - 1] = sfs[count - 1] + 1 #the sfs is incremented
+        # warning! SFS[0] are monomorphic sites, as well as SFS[len(gen)] is SFS is unfoled
+        # if count != 0 and (folded) or (not folded and count != 2*n) # these are monomorphic sites
+        sfs[count] += 1 #the sfs is incremented
         return(sfs)
 
 
