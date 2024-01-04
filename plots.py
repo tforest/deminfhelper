@@ -106,7 +106,7 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
         dadi_params[2][2]*=T_scaled_years
         dadi_params[2][3]*=T_scaled_years
     best_model = None
-#bad models :
+    #bad models :
     for elem in dadi_vals_list:
         popt = elem[2]
         if elem[1] > max_v:
@@ -115,7 +115,7 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
         x =  [0, popt[3], popt[3], popt[3]+popt[2], popt[3]+popt[2], (popt[3]+popt[2])+0.01]
         y = [popt[1], popt[1], popt[0], popt[0], 1, 1]
         plt.plot(x, y, '--', alpha = 0.4)
-#best model :
+    #best model :
     best_x = [0, best_model[3], best_model[3], best_model[3]+best_model[2], best_model[3]+best_model[2], (best_model[3]+best_model[2])+0.01]
     print("BEST",best_x)
     best_y = [best_model[1], best_model[1], best_model[0], best_model[0], 1, 1]
@@ -129,8 +129,6 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
     plt.title(title)
     plt.savefig(out_dir+"/inferences/output_plot_"+name_pop+"dadi.png")
     plt.close()
-
-
 
 def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_file,summary_file2, max_v = -10**6, title="estimates",):
     import dadi

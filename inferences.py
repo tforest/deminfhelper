@@ -36,20 +36,6 @@ def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
 
 from numpy import array
 from matplotlib import pyplot as plt
-def dadi_output_parse(dadi_output_file):
-    all_vals = []
-    with open(dadi_output_file) as dadi_output:
-        for line in dadi_output:
-            #print(line)
-            line_parsed = line.strip().split()
-            #print(line_parsed)
-            ite = int(line_parsed[0])
-            logL = float(line_parsed[2][:-1])
-            all_vals.append([ite, logL, eval(line.strip().split("array")[-1][1:-1])])
-    return all_vals
-
-
-
 
 def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen):
 

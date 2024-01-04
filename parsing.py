@@ -58,6 +58,7 @@ def parse_sfs(sfs_file):
         print(f"Error: {e}")
     # final return of SFS as a list
     return masked_spectrum
+
 def get_contigs_lengths(param, length_cutoff=100000):
     contigs = []
     if 'length_cutoff' not in param.keys():
@@ -80,6 +81,26 @@ def get_contigs_lengths(param, length_cutoff=100000):
                 break
             line = vcf.readline()
     return contigs
+
+def dadi_output_parse(dadi_output_file):
+    all_vals = []
+    ite = 0
+    with open(dadi_output_file) as dadi_output:
+        for line in dadi_output:
+            # Log(likelihood)       nuB     nuF     TB      TF      misid   theta
+            if line.startswith("#"):
+                # skip if comments
+                continue
+            ite += 1
+            line_parsed = line.strip().split()
+            logL = float(line_parsed[0])
+            nuB = float(line_parsed[1])
+            nuF = float(line_parsed[2])
+            TB = float(line_parsed[3])
+            TF = float(line_parsed[4])
+            theta = float(line_parsed[5])
+            all_vals.append([ite, logL, [nuB, nuF, TB, TF], theta])
+    return all_vals
 
 def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
     # cutoff is the minimum size of each contig to be used

@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument("--plot_stairwayplot2", help = "to run stairwayplot2", action = "store_true")
     #Dadi
     parser.add_argument("--dadi", help = "to run dadi: the sfs must not be transformed", action = "store_true")
+    parser.add_argument("--plot_dadi", help = "to create popsize plot from dadi output.", action = "store_true")
     #MSMC2
     parser.add_argument("--msmc2", help = "to run msmc2", action = "store_true")
     parser.add_argument("--plot_msmc2", help = "to plot msmc2", action = "store_true")
@@ -187,7 +188,6 @@ def main():
 
 
     # Compute the SFS
-
     if args.sfs or args.gq_distrib:
         res_pars = parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib)
         if not param['L']:
@@ -335,7 +335,14 @@ def main():
                          sfs_path = param["out_dir_sfs"]+"SFS_"+p+".fs",
                          lower_bounds = eval(param["lower_bound"]),
                          upper_bounds = eval(param["upper_bound"]))
-           
+
+
+    if args.plot_dadi:
+        for p in param["name_pop"]:
+            dadi_vals = dadi_output_parse(param["out_dir_dadi"]+p+".dadi.InferDM.opts.1")
+            # print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",
+            #                              dadi_vals_list=dadi_vals,out_dir=param["out_dir"],
+            #                              title =p, xlim = False, ylim =False,name_pop=p)
     #GQ distribution
     if args.gq_distrib:
         if not os.path.exists(param["out_dir_gq_distrib"]):
