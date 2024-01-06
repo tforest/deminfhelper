@@ -85,11 +85,19 @@ def get_contigs_lengths(param, length_cutoff=100000):
 def dadi_output_parse(dadi_output_file):
     all_vals = []
     ite = 0
+    converged = False
     with open(dadi_output_file) as dadi_output:
         for line in dadi_output:
             # Log(likelihood)       nuB     nuF     TB      TF      misid   theta
             if line.startswith("#"):
-                # skip if comments
+                # check if converged
+                if "Converged" in line:
+                    converged = True
+                if converged and len(all_vals) > 0:
+                    # all converged values have been parsed
+                    # skip the top 100 results that are printed as the second series of values
+                    return all_vals
+                # then skip if comments
                 continue
             ite += 1
             line_parsed = line.strip().split()

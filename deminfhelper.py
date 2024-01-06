@@ -162,6 +162,7 @@ def main():
             'lower_bound': '1, 1, 0.05, 0.01',
             'p0': '0.01, 0.001, 0.01, 0.01',
             'upper_bound': '10, 4, 0.1, 10',
+            'optimizations': '100',
             'out_dir_dadi': args.out+'/output_dadi/',
             'out_dir_smcpp': args.out+'/output_smcpp/',
             'plot_file_smcpp': args.out+'/output_smcpp/hirrus_inference.csv',
@@ -333,13 +334,19 @@ def main():
         for p in param["name_pop"]:
             run_dadi_cli(popid = p, out_dir = param["out_dir_dadi"],
                          sfs_path = param["out_dir_sfs"]+"SFS_"+p+".fs",
+                         p0 = eval(param["p0"]),
                          lower_bounds = eval(param["lower_bound"]),
-                         upper_bounds = eval(param["upper_bound"]))
+                         upper_bounds = eval(param["upper_bound"]),
+                         optimizations = param["optimizations"])
 
 
     if args.plot_dadi:
         for p in param["name_pop"]:
-            dadi_vals = dadi_output_parse(param["out_dir_dadi"]+p+".dadi.InferDM.opts.1")
+            dadi_vals = dadi_output_parse(param["out_dir_dadi"]+p+".InferDM.bestfits")
+            plot_dadi_output_three_epochs(dadi_vals,p,out_dir = param['final_out_dir'],
+                                          mu = eval(param['mut_rate']),
+                                          gen_time = eval(param['gen_time']),
+                                          L = eval(param['L']))
             # print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",
             #                              dadi_vals_list=dadi_vals,out_dir=param["out_dir"],
             #                              title =p, xlim = False, ylim =False,name_pop=p)

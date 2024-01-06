@@ -103,16 +103,35 @@ def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen)
     print("theta", theta)
     print("T_scaled_gen", scaled_popt[2])
 
-def run_dadi_cli(popid, out_dir, sfs_path, optimizations=1000, lower_bounds = [0.1, 0.1, 0.1, 0.1],
+def run_dadi_cli(popid, out_dir, sfs_path, optimizations=None, p0 = [1, 1, 10, 5], lower_bounds = [0.1, 0.1, 0.1, 0.1],
                  upper_bounds = [50, 5, 30, 10]):
+    if optimizations == None:
+        check_convervence_step = 10
+    else:
+        check_convervence_step = int(optimizations) // 10
     # create dadi file
-    cmd1 = "".join(["dadi-cli InferDM --fs ", sfs_path, \
-                    " --model three_epoch --lbounds ", " ".join(map(str, lower_bounds)), \
-                    " --ubounds ", " ".join(map(str, upper_bounds)), " --output ", \
-                    out_dir+str(popid)+".dadi", " --optimizations ", str(optimizations)])
+    if optimizations == None:
+        # if no number of optimizations is set, run until convergence.
+        cmd1 = "".join(["dadi-cli InferDM --fs ", sfs_path, \
+                        " --model three_epoch --lbounds ", " ".join(map(str, lower_bounds)), \
+                        " --ubounds ", " ".join(map(str, upper_bounds)),
+                        " --p0 ", p0, " --output ", \
+                        out_dir+str(popid), " --force-convergence ", str(check_convervence_step) ])
+    else:
+        cmd1 = "".join(["dadi-cli InferDM --fs ", sfs_path, \
+                        " --model three_epoch --lbounds ", " ".join(map(str, lower_bounds)), \
+                        " --ubounds ", " ".join(map(str, upper_bounds)), " --output ", \
+                        out_dir+str(popid), " --p0 ", " ".join(map(str, p0)), \
+                        " --optimizations ", str(optimizations), \
+                        # check for convergence every 10 optimizations
+                        " --check-convergence ", str(check_convervence_step) ])
     print(cmd1)
     os.system(cmd1)
-    
+    cmd2 = "".join(["dadi-cli BestFit --input-prefix ", out_dir+str(popid)+".InferDM", \
+                        " --lbounds ", " ".join(map(str, lower_bounds)), \
+                        " --ubounds ", " ".join(map(str, upper_bounds)) ])
+    print(cmd2)
+    os.system(cmd2)    
 
 def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_generation, stairway_plot_dir, output_path, temp_blueprint):
     #writes the input file to run stairwayplot2
@@ -233,6 +252,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
     print(cmd5)
     with open(popid+"_msmc2.log", 'w') as log:
         p=subprocess.Popen(cmd5,stdout=log, shell=True)
+
 def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))

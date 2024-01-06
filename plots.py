@@ -18,7 +18,6 @@ def plot_sfs(sfs, plot_title, output_file):
     plt.savefig(output_file)
     plt.close()
 
-
 def plot_stairwayplot2(popid, summary_file, out_dir):
     Ne_med=[]
     Ne1=[]
@@ -75,7 +74,6 @@ def plot_distrib_gq(popid, gq, out_dir_gq):
     plt.savefig(out_dir_gq+popid + "_gq_distrib.png")
     plt.close()
 
-
 def plot_smcpp(popid, summary_file, out_dir):
     Ne=[]
     T=[]
@@ -93,32 +91,43 @@ def plot_smcpp(popid, summary_file, out_dir):
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_smcpp_inference.png")
     plt.close()
-
-
-def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, xlim, ylim, max_v = -10**6, title="Dadi pop. estimates"):
-    with open(T_scaled_gen) as fo:
-        line = fo.readline()
-        fo.close()
-    t_scaled_gen= line[1:-1]
-    T_scaled_years=float(str.split(t_scaled_gen,", ")[-1])
-    print("T_scaled_years",T_scaled_years)
-    for dadi_params in dadi_vals_list:
-        dadi_params[2][2]*=T_scaled_years
-        dadi_params[2][3]*=T_scaled_years
+    
+def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_time,
+                                  xlim = None, ylim = None,
+                                  max_v = -10**6, nb_plots_max = 10, title="Dadi pop. estimates"):
     best_model = None
-    #bad models :
+    scenarios = {}
     for elem in dadi_vals_list:
-        popt = elem[2]
-        if elem[1] > max_v:
-            max_v = elem[1]
-            best_model = elem[2]
-        x =  [0, popt[3], popt[3], popt[3]+popt[2], popt[3]+popt[2], (popt[3]+popt[2])+0.01]
-        y = [popt[1], popt[1], popt[0], popt[0], 1, 1]
+        # elem is structured like this:
+        # [iter_number, log_likelihood, [nuB, nuF, TB, TF], theta]
+        log_lik = elem[1]
+        # store scenarios sorted by their log_lik
+        scenarios[float(log_lik)] = elem
+    best_scenarios = sorted(scenarios.keys(), reverse = True)[:nb_plots_max]
+    lines_x = []
+    lines_y = []
+    for scenario in best_scenarios:
+        elem = scenarios[scenario]
+        log_lik = elem[1]
+        #popt = np.array(elem[2])
+        theta = elem[3]
+        Nanc = theta / (4*mu*L)
+        # rescale to Nancestral effective size
+        nuB = np.array(elem[2][0]) * Nanc
+        nuF = np.array(elem[2][1]) * Nanc
+        # Convert to years
+        TB = np.array(elem[2][2]) * gen_time * Nanc
+        TF = np.array(elem[2][3]) * gen_time * Nanc
+        # now create x and y
+        lines_x.append([0, TF, TF, TF+TB, TF+TB, (TF+TB)+0.01])
+        lines_y.append([nuF, nuF, nuB, nuB, 1, 1])
+    for i in range(1, len(lines_x)):
+        x = lines_x[i]
+        y = lines_y[i]
         plt.plot(x, y, '--', alpha = 0.4)
     #best model :
-    best_x = [0, best_model[3], best_model[3], best_model[3]+best_model[2], best_model[3]+best_model[2], (best_model[3]+best_model[2])+0.01]
-    print("BEST",best_x)
-    best_y = [best_model[1], best_model[1], best_model[0], best_model[0], 1, 1]
+    best_x = lines_x[0]
+    best_y = lines_y[0]
     plt.plot(best_x, best_y, 'r-', lw=2)
     plt.ylabel("Individuals (Na)")
     plt.xlabel("Time (years)")
@@ -127,7 +136,7 @@ def print_dadi_output_two_epochs(T_scaled_gen,dadi_vals_list,name_pop,out_dir, x
     if ylim:
         plt.ylim(ylim)
     plt.title(title)
-    plt.savefig(out_dir+"/inferences/output_plot_"+name_pop+"dadi.png")
+    plt.savefig(out_dir+"output_plot_"+name_pop+"dadi.png")
     plt.close()
 
 def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_file,summary_file2, max_v = -10**6, title="estimates",):
