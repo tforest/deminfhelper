@@ -57,7 +57,9 @@ def parse_args():
     parser.add_argument("--Gplot", help = "to plot all inferences on the same graph", action = "store_true")
 
     parser.add_argument("--folded", help = "Fold the SFS. Default: True", action = "store_true", default=True)
-
+    # Statistics
+    # PCA
+    parser.add_argument("--pca", help = "Compute PCA using Plink2", action = "store_true")
     # Config args; if no config file
     parser.add_argument("--popid", help="a population identifier; eg. species name",  type=str)
     parser.add_argument("--samples", help="a list of samples to use in the VCF. By default all samples are taken.", default="all", type=str)
@@ -167,6 +169,7 @@ def main():
             'out_dir_smcpp': args.out+'/output_smcpp/',
             'plot_file_smcpp': args.out+'/output_smcpp/hirrus_inference.csv',
             'out_dir_gq_distrib': args.out+'/output_gq_distrib/',
+            'out_dir_stats': args.out+'/output_stats/',
             'final_out_dir': args.out+'/inferences/',
             # default length of contig to keep, useful for SMC++
             'length_cutoff': 100000
@@ -357,7 +360,14 @@ def main():
         GQ_dict = res_pars[1]
         for p in param["name_pop"]:
             plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"] )
-
+    # PCA
+    if args.pca:
+        if not os.path.exists(param["out_dir_stats"]):
+            os.makedirs(param["out_dir_stats"])
+        for p in param["name_pop"]:
+            pca_from_vcf(popid = p, vcf_file = param["vcf"],
+                         nb_samples = param["n_"+p],
+                         out_dir = param["out_dir_stats"])
     ##SMC++
     if args.smcpp:
         contigs = get_contigs_lengths(param)

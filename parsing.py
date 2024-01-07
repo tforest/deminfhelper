@@ -5,14 +5,17 @@ if MSMC=False
 """
 
 import gzip
+import os
 # from inferences import *
 
 if __package__ is None or __package__ == '':
     import inferences
     import sfs
+    import plots
 else:
     from . import inferences
     from . import sfs
+    from . import plots
 
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
@@ -110,6 +113,30 @@ def dadi_output_parse(dadi_output_file):
             all_vals.append([ite, logL, [nuB, nuF, TB, TF], theta])
     return all_vals
 
+def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2):
+    plink_out_dir = out_dir+"/plink/"
+    if not os.path.exists(plink_out_dir):
+        os.makedirs(plink_out_dir)
+    # need to use bcftools to add IDs to replace the "." with unique IDs for each variant
+    cmd1 = "".join(["bcftools annotate --set-id +'%CHROM:%POS' ", \
+                    vcf_file, " -Oz -o ", \
+                    plink_out_dir+popid+"_IDs.vcf.gz"])
+    print(cmd1)
+    os.system(cmd1)
+    cmd2 = "".join(["plink2 --vcf ", plink_out_dir+popid+"_IDs.vcf.gz", \
+                    " --make-bed --allow-extra-chr --max-alleles ", str(ploidy), \
+                    " --snps-only --out ", plink_out_dir+popid, " --freq"])
+    print(cmd2)
+    os.system(cmd2)
+    cmd3 = "".join(["plink2 --bfile ", plink_out_dir+popid, \
+                    " --pca ", str(nb_samples-1), \
+                    " --out ", plink_out_dir+popid+".pca --allow-extra-chr --read-freq ", \
+                     plink_out_dir+popid+".afreq"])
+    print(cmd3)
+    os.system(cmd3)
+    # Generate plot
+    plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval")
+    
 def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
     # cutoff is the minimum size of each contig to be used
     # required for SMC++, as it works for contigs > 100kb or 1mb

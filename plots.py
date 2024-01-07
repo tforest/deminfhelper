@@ -202,3 +202,37 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     plt.ylabel('Na')
     plt.savefig(out_dir+popid+"_GPLOT_inference.png")
     plt.close()
+
+def plot_pca(plink_eigenvec, plink_eigenval):
+    # Load eigenvectors and eigenvalues
+    with open(plink_eigenvec) as input:
+        for line in input:
+            if line.startswith("#"):
+                continue
+            else:
+                num_cols = len(line.split())
+                break
+    eigenvectors = np.genfromtxt(plink_eigenvec, skip_header=1, usecols=range(2, num_cols))  # Skip header and first two columns
+    eigenvalues = np.loadtxt(plink_eigenval)
+
+    # Determine the number of components
+    num_components = eigenvectors.shape[1]
+
+    # Calculate the percentage of variance explained by each PC
+    variance_explained = (eigenvalues / np.sum(eigenvalues)) * 100
+
+    # Plot the first two principal components
+    plt.figure(figsize=(8, 6))
+    plt.scatter(eigenvectors[:, 0], eigenvectors[:, 1], c='blue', marker='o', s=50)
+    plt.title(f'PCA: PC1 vs PC2 ({num_components} components)')
+    plt.xlabel(f'PC1 ({variance_explained[0]:.2f}%)')
+    plt.ylabel(f'PC2 ({variance_explained[1]:.2f}%)')
+    plt.show()
+
+    # Bar plot of explained variance
+    plt.figure(figsize=(10, 6))
+    plt.bar(range(1, num_components + 1), variance_explained * 100, color='blue', alpha=0.7)
+    plt.xlabel('Number of Components (K)')
+    plt.ylabel('Proportion of Explained Variance (%)')
+    plt.title(f'Explained Variance by Components ({num_components} components)')
+    plt.show()
