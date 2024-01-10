@@ -108,32 +108,6 @@ def parse_yaml_file(file_path):
 
     return yaml_dict
 
-
-def parse_config(config_file):
-    param = {}
-    with open(config_file, "rt") as config:
-        line=config.readline()
-        while line != "":
-            if line[0] != "#":
-                    param[line[:-1].split(": ")[0]] = line[:-1].split(": ")[1]
-            line = config.readline()
-
-    param["folded"]=bool(param["folded"])
-    #param["transformed"]=bool(param["transformed"])
-    param["name_pop"] = param["name_pop"].split(",")
-    param["npop"]=int(param["npop"])
-    for p in param["name_pop"]:
-        param[p] = param[p].split(",")
-        param["n_"+p] = len(param[p])
-
-
-    # SETTING SOME DEFAULTS
-    if "length_cutoff" not in param:
-        # default contig size to keep is 1Mb
-        param["length_cutoff"] = 100000
-
-    return param
-
 def main():
     # parse args
     args = parse_args()
@@ -193,7 +167,7 @@ def main():
 
     # Compute the SFS
     if args.sfs or args.gq_distrib:
-        res_pars = parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib)
+        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib)
         if not param['L']:
             # Needed estimated number of sequence genotyped.
             # from GADMA
@@ -203,7 +177,13 @@ def main():
             # Then we should count filtered SNP’s and take L value the following way:
             # L = (X - Y) / X * Nseq
             param["L"] = res_pars[3]
-            print("L=", param["L"])
+            print("Computed L=", param["L"])
+        if args.config_file:
+            # add/update L_computed in the config file
+            param["L_computed"] = res_pars[3]
+            print("Adding L_computed=",  param["L_computed"], "to", args.config_file)
+            update_config(config_dict = param, 
+                          config_file = args.config_file)
     if args.sfs:
         if not os.path.exists(param["out_dir_sfs"]):
             # create the sfs output directory if it does not exists

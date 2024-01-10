@@ -6,6 +6,7 @@ if MSMC=False
 
 import gzip
 import os
+import numpy as np
 # from inferences import *
 
 if __package__ is None or __package__ == '':
@@ -19,6 +20,86 @@ else:
 
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
+
+def parse_config(config_file):
+    param = {}
+    with open(config_file, "rt") as config:
+        line=config.readline()
+        while line != "":
+            if line[0] != "#":
+                    param[line[:-1].split(": ")[0]] = line[:-1].split(": ")[1]
+            line = config.readline()
+
+    param["folded"]=bool(param["folded"])
+    #param["transformed"]=bool(param["transformed"])
+    param["name_pop"] = param["name_pop"].split(",")
+    param["npop"]=int(param["npop"])
+    for p in param["name_pop"]:
+        param[p] = [item.strip() for item in param[p].split(",")]
+        param["n_"+p] = len(param[p])
+
+
+    # SETTING SOME DEFAULTS
+    if "length_cutoff" not in param:
+        # default contig size to keep is 1Mb
+        param["length_cutoff"] = 100000
+
+    return param
+
+def update_config(config_dict, config_file):
+    """
+    Update the configuration file with the values from the given config_dict.
+    Preserve in-place comment lines and add new entries at the end.
+
+    Parameters:
+    - config_dict (dict): The dictionary containing the updated configuration values.
+    - config_file (str): The path to the configuration file.
+
+    Returns:
+    - None
+    """
+    # Read the existing config file
+    with open(config_file, 'r') as file:
+        lines = file.readlines()
+
+    initial_dict = {key.lower(): key for key in parse_config(config_file)} 
+
+    # Create a mapping of lowercase keys to original keys
+    key_mapping = {key.lower(): key for key in config_dict}
+
+    # Update values in the lines based on config_dict or add new entries
+    for i in range(len(lines)):
+        line = lines[i].strip()
+        if line.startswith('#') or not line:
+            # Preserve in-place comment lines
+            continue
+
+        key, value = map(str.strip, line.split(':', 1))
+
+        # Use the original key if it's found in the config_dict
+        key_original = key_mapping.get(key.lower(), key)
+
+        if key_original in config_dict:
+            # If the key is found in the config_dict, update the value
+            updated_value = config_dict[key_original]
+            # Check if the value is a list and format it accordingly
+            if isinstance(updated_value, list):
+                updated_value_str = ', '.join(map(str, updated_value))
+            else:
+                updated_value_str = updated_value
+            lines[i] = f"{key_original}: {updated_value_str}\n"
+
+    # Add new entries from config_dict at the end of the file if they are not already present
+    for key, value in config_dict.items():
+        # Check if the key is not already present in the file
+        if key.lower() not in initial_dict.keys():
+            lines.append(f"{key}: {value}\n")
+
+    # Write the updated lines back to the config file
+    with open(config_file, 'w') as output:
+        for line in lines:
+            output.write(line)
+
 
 def parse_sfs(sfs_file):
     try:
@@ -137,21 +218,40 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2):
     # Generate plot
     plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval")
     
-def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
+def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_size = 1000):
     # cutoff is the minimum size of each contig to be used
     # required for SMC++, as it works for contigs > 100kb or 1mb
     length_cutoff = int(PARAM["length_cutoff"])
+
+    genome_segments = {}
+    # the genome is going to be chopped in segments of a maximum size
+    # defined by segments_size parameter.
+    # Each segment will store its SFS.
+    # as well as the mean coverage of SNPs
+    # At the end, only segments with sufficient coverage will be kept
+
+     ### L: Estimated number of sequence genotyped.
+     # from GADMA
+     # Assume total length of sequence that was used for SFS building is equal to Nseq.
+     # From this data total number of X SNP’s were received.
+     # But not all of them were used for SFS: some of them (e.g. total number of Y SNP’s) were filtered out.
+     # Then we should count filtered SNP’s and take L value the following way:
+     # L = (X - Y) / X * Nseq
+    
     with gzip.open(PARAM["vcf"],  mode='rt') as vcf:
         SFS_dict = {}
         GQ_dict = {}
         contigs = []
+        cols_in_vcf = {}
+        segments_mean_snps_freq = []
         Nseq = 0
         All_snp_count = 0
         Kept_snp_count = 0
         if SFS:
             # we initialize a sfs for each population
             for p in PARAM["name_pop"]:
-                SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True)
+                genome_segments[p] = {}
+                SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True))
         if GQ:
             for p in PARAM["name_pop"]:
                         GQ_dict[p] = {}
@@ -172,9 +272,35 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                     pos_ind_pop = []
                     for ind in PARAM[p]:
                         pos_ind_pop.append(line[:-1].split("\t").index(ind))
-                    PARAM["pos_"+p] = pos_ind_pop
+                    cols_in_vcf["pos_"+p] = pos_ind_pop
             if line.startswith("#"):
-                pass
+                line = vcf.readline()
+                continue
+            chrm = line.split()[0]
+            pos = int(line.split()[1])
+            if chrm not in genome_segments[p].keys():
+                genome_segments[p][chrm] = {}
+                start_pos = pos
+                end_pos = start_pos+segments_size
+                # initiate SFS for the first segment of this CHR
+                # each segment is defined by its startpos, it belongs to a chromosome, itself from a certain (sub)population
+                genome_segments[p][chrm][start_pos] = {}
+                genome_segments[p][chrm][start_pos]['sfs'] = sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True)
+                genome_segments[p][chrm][start_pos]['count_snps'] = 0
+                genome_segments[p][chrm][start_pos]['snps_mean'] = 0
+            elif pos > end_pos:
+                # when we switch segment, same CHR
+                # first store previous segment values
+                segments_mean_snps_freq.append(genome_segments[p][chrm][start_pos]['snps_mean'])
+                # change segment
+                start_pos = pos
+                end_pos = start_pos+segments_size
+                # initiate SFS for this new segment
+                genome_segments[p][chrm][start_pos] = {}
+                genome_segments[p][chrm][start_pos]['sfs'] = sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True)
+                genome_segments[p][chrm][start_pos]['count_snps'] = 0
+                genome_segments[p][chrm][start_pos]['snps_mean'] = 0
+
             if SFS or GQ:
                 All_snp_count += 1
                 if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
@@ -182,13 +308,43 @@ def parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                     split_line = line.split("\t")
                     if SFS:
                         for p in PARAM["name_pop"]:
-                            SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
-                                    line = split_line, sfs = SFS_dict[p], pos_ind = PARAM["pos_"+p])
+                            genome_segments[p][chrm][start_pos]['sfs'] = sfs.build_sfs(n=PARAM["n_"+p], \
+                                                                                        folded=PARAM["folded"], \
+                                                                                        sfs_ini = False, \
+                                                                                        line = split_line, \
+                                                                                        sfs = genome_segments[p][chrm][start_pos]['sfs'], \
+                                                                                        pos_ind = cols_in_vcf["pos_"+p])
+                            
+                            genome_segments[p][chrm][start_pos]['count_snps'] += 1
+                            # proportion of SNPs of all sites scanned for this segment
+                            # this proportion is evaluated at each SNP 
+                            genome_segments[p][chrm][start_pos]['snps_mean'] = genome_segments[p][chrm][start_pos]['count_snps'] / (pos-start_pos+1)
+                            # SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
+                            #         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
+                            
                     if GQ:
                         for p in PARAM["name_pop"]:
                             GQ_dict[p] = distrib_GQ(GQ_pop = GQ_dict[p], line = split_line, pos_ind = PARAM["pos_"+p])
             line = vcf.readline()
             pbar.update(1)
     pbar.close()  # Close the progress bar when done
+
+    print("SFS parsing: Done. Filtering variants keeping only segments with sufficient coverage.")
+    # Distribution of SNPs coverage
+    sorted_data = np.sort(segments_mean_snps_freq)
+    cumulative_distribution = np.cumsum(sorted_data) / np.sum(sorted_data)
+    # Value where 60% of data are higher
+    index_40_percent = np.abs(cumulative_distribution - 0.4).argmin()
+    value_40_percent = sorted_data[index_40_percent]
+    data_median = np.median(sorted_data)
+    Kept_snp_count = 0
+    for p in PARAM["name_pop"]:
+        for chrm in genome_segments[p]:
+            for start_pos_segment in genome_segments[p][chrm]:
+                if genome_segments[p][chrm][start_pos_segment]['snps_mean'] >= data_median:
+                    # keep this segment, add its SFS to the final SFS for this p
+                    Kept_snp_count += 1
+                    SFS_dict[p] += np.array(genome_segments[p][chrm][start_pos_segment]['sfs'])
     L = (All_snp_count - Kept_snp_count) / All_snp_count * Nseq
+    
     return SFS_dict, GQ_dict, contigs, round(L)
