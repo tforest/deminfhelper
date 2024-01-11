@@ -317,7 +317,6 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
                                                                                         line = split_line, \
                                                                                         sfs = genome_segments[p][chrm][start_pos]['sfs'], \
                                                                                         pos_ind = cols_in_vcf["pos_"+p])
-                            
                             genome_segments[p][chrm][start_pos]['count_snps'] += 1
                             # proportion of SNPs of all sites scanned for this segment
                             # this proportion is evaluated at each SNP 

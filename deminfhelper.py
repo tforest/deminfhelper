@@ -186,7 +186,7 @@ def main():
             # Build coverage plot with current filter
             genotyping_coverage_plot(popid = p, snp_coverage = res_pars[4],
                                      out_dir_stats = param["out_dir_stats"],
-                                     filter_prefix = "^CM", nb_bins = 10)
+                                     filter_prefix = None, nb_bins = 10)
             if param["folded"]:
                 # if folded is set to True, store in a string the SFS state
                 # for later use. 
