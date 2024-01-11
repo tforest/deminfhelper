@@ -27,12 +27,9 @@ else:
     
 def parse_args():
     ## CMD ARGUMENTS
-
     parser = argparse.ArgumentParser(description='Computes the sfs from the vcf and runs demography inference softwares.')
-
     #mandatory arguments
     parser.add_argument("--config_file", help="path to the configuration file")
-
     #optional arguments
     #SFS
     parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
@@ -153,9 +150,6 @@ def main():
             param["n_"+p] = len(param[p])
 
 
-    #for key in param.keys():
-    #    print(key,": ",param[key])
-
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
@@ -163,7 +157,6 @@ def main():
     if args.smcpp or args.stairwayplot2 or args.dadi:
         if not os.path.exists(param["final_out_dir"]):
             os.makedirs(param["final_out_dir"])
-
 
     # Compute the SFS
     if args.sfs or args.gq_distrib:
@@ -190,6 +183,10 @@ def main():
             os.makedirs(param["out_dir_sfs"])
         SFS_dict = res_pars[0]
         for p in param["name_pop"]:
+            # Build coverage plot with current filter
+            genotyping_coverage_plot(popid = p, snp_coverage = res_pars[4],
+                                     out_dir_stats = param["out_dir_stats"],
+                                     filter_prefix = "^CM", nb_bins = 10)
             if param["folded"]:
                 # if folded is set to True, store in a string the SFS state
                 # for later use. 
@@ -231,7 +228,6 @@ def main():
             SFS_dict[param["name_pop"][0]] = sfs_list
             plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
 
-
     if args.sfs_transformed:
         if args.sfs == False:
             SFS_dict = {}
@@ -253,8 +249,6 @@ def main():
             if args.plot_sfs:
                 plot_sfs(sfs = SFS_dict_trans[p], plot_title = "SFS (transformed) "+p, output_file = param["out_dir_sfs"]+p+"_trans.png")
 
-
-
     # Run Stairwayplot2
     if args.stairwayplot2:
         if not os.path.exists(param["out_dir_stairwayplot2"]):
@@ -266,11 +260,6 @@ def main():
                 SFS_dict = {}
                 sfs_list = parse_sfs(param["path_to_sfs"])
                 SFS_dict[param["name_pop"][0]] = sfs_list
-                # with open(param["path_to_sfs"], "rt") as sfs:
-                #     line=sfs.readline()
-                #     while line != "":
-                #         SFS_dict[param["name_pop"][0]] = [int(i) for i in line[:-1].split(",")]
-                #         line = sfs.readline()
 
         for p in param["name_pop"]:
             if param["folded"]:
@@ -298,12 +287,10 @@ def main():
                 plot_stairwayplot2(popid = p, summary_file = param["summary_file_stw"], \
                                out_dir = param["final_out_dir"])
 
-
     if args.plot_msmc2:
         for p in param["name_pop"]:
             plot_msmc2(popid = p, summary_file = "".join([param["out_dir_msmc2"], "/", p, "_msmc2.final.txt"]), \
                            mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"])
-
 
     # Run dadi
     if args.dadi:
@@ -322,7 +309,7 @@ def main():
                          upper_bounds = eval(param["upper_bound"]),
                          optimizations = param["optimizations"])
 
-
+    # Dadi plot
     if args.plot_dadi:
         for p in param["name_pop"]:
             dadi_vals = dadi_output_parse(param["out_dir_dadi"]+p+".InferDM.bestfits")
@@ -330,9 +317,6 @@ def main():
                                           mu = eval(param['mut_rate']),
                                           gen_time = eval(param['gen_time']),
                                           L = eval(param['L']))
-            # print_dadi_output_two_epochs(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",
-            #                              dadi_vals_list=dadi_vals,out_dir=param["out_dir"],
-            #                              title =p, xlim = False, ylim =False,name_pop=p)
     #GQ distribution
     if args.gq_distrib:
         if not os.path.exists(param["out_dir_gq_distrib"]):
@@ -354,7 +338,6 @@ def main():
         if not os.path.exists(param["out_dir_smcpp"]):
             os.makedirs(param["out_dir_smcpp"])
         for p in param["name_pop"]:
-            #contigs = res_pars[2]
             smcpp(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"])
     ##MSMC2
@@ -363,7 +346,6 @@ def main():
         if not os.path.exists(param["out_dir_msmc2"]):
             os.makedirs(param["out_dir_msmc2"])
         for p in param["name_pop"]:
-            #contigs = res_pars[2]
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"])
     ##PSMC
@@ -372,7 +354,6 @@ def main():
         if not os.path.exists(param["out_dir_psmc"]):
             os.makedirs(param["out_dir_psmc"])
         for p in param["name_pop"]:
-            #contigs = res_pars[2]
             psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
     if args.plot_smcpp:

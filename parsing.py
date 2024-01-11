@@ -102,38 +102,42 @@ def update_config(config_dict, config_file):
 
 
 def parse_sfs(sfs_file):
+    """
+    Parses a site frequency spectrum (SFS) file and returns a masked spectrum.
+
+    Parameters:
+    - sfs_file (str): The path to the SFS file to be parsed.
+
+    Returns:
+    - list: A masked spectrum, where bins indicated by the mask are excluded.
+
+    Raises:
+    - FileNotFoundError: If the specified SFS file is not found.
+    - ValueError: If there are inconsistencies in the file format or data, such as mismatched bin counts.
+
+    Example:
+    >>> parse_sfs('example.fs')
+    [1, 0, 3, 2, 0]
+    """
     try:
         with open(sfs_file, 'r') as file:
             # Read the first line which contains information about the file
             num_individuals, mode, species_name = file.readline().strip().split()
             num_individuals = int(num_individuals)
-
-            # print(f"Number of individuals: {num_individuals}")
-            # print(f"Mode: {mode}")
-            # print(f"Species name: {species_name}")
-
             # Read the spectrum data
             spectrum_data = list(map(int, file.readline().strip().split()))
-
             # Check if the number of bins in the spectrum matches the expected number
             if len(spectrum_data) != num_individuals:
                 raise ValueError("Error: Number of bins in the spectrum doesn't match the expected number of individuals.")
-
-            # print(f"Spectrum data: {spectrum_data}")
-
             # Read the mask data
             mask_data = list(map(int, file.readline().strip().split()))
 
             # Check if the size of the mask matches the number of bins in the spectrum
             if len(mask_data) != num_individuals:
                 raise ValueError("Error: Size of the mask doesn't match the number of bins in the spectrum.")
-
-            # print(f"Mask data: {mask_data}") 
-
             # Apply the mask to the spectrum
             masked_spectrum = [spectrum_data[i] for i in range(num_individuals) if not mask_data[i]]
-            # print(f"Masked spectrum: {masked_spectrum}")
-
+    # Error handling
     except FileNotFoundError:
         print(f"Error: File not found - {sfs_file}")
     except ValueError as ve:
@@ -149,10 +153,9 @@ def get_contigs_lengths(param, length_cutoff=100000):
         param["length_cutoff"] = length_cutoff
     else:
         length_cutoff = param["length_cutoff"]
-
+    # Parsing VCF in gzip format
     with gzip.open(param["vcf"], 'rt') as vcf:
         line = vcf.readline()
-        #print(line)
         while line != "":
             if line[0:8] == "##contig":
                 # keep only contigs that are longer than the length_cutoff parameter
@@ -330,21 +333,20 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
     pbar.close()  # Close the progress bar when done
 
     print("SFS parsing: Done. Filtering variants keeping only segments with sufficient coverage.")
-    # Distribution of SNPs coverage
     sorted_data = np.sort(segments_mean_snps_freq)
-    cumulative_distribution = np.cumsum(sorted_data) / np.sum(sorted_data)
-    # Value where 60% of data are higher
-    index_40_percent = np.abs(cumulative_distribution - 0.4).argmin()
-    value_40_percent = sorted_data[index_40_percent]
     data_median = np.median(sorted_data)
     Kept_snp_count = 0
+    snps_coverage_by_chr = {}
     for p in PARAM["name_pop"]:
         for chrm in genome_segments[p]:
+            snps_coverage_by_chr[chrm] = {}
             for start_pos_segment in genome_segments[p][chrm]:
+                snps_coverage_by_chr[chrm][start_pos_segment] = 0
                 if genome_segments[p][chrm][start_pos_segment]['snps_mean'] >= data_median:
                     # keep this segment, add its SFS to the final SFS for this p
                     Kept_snp_count += 1
                     SFS_dict[p] += np.array(genome_segments[p][chrm][start_pos_segment]['sfs'])
+                    snps_coverage_by_chr[chrm][start_pos_segment] = genome_segments[p][chrm][start_pos_segment]['snps_mean']
     L = (All_snp_count - Kept_snp_count) / All_snp_count * Nseq
     
-    return SFS_dict, GQ_dict, contigs, round(L)
+    return SFS_dict, GQ_dict, contigs, round(L), snps_coverage_by_chr

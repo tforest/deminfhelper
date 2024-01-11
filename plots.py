@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 import pandas as pd
+import os
+import re
+from matplotlib.backends.backend_pdf import PdfPages
 
 def plot_sfs(sfs, plot_title, output_file):
     plt.bar(np.arange(1, len(sfs)+1), sfs)
@@ -74,6 +77,86 @@ def plot_distrib_gq(popid, gq, out_dir_gq):
     plt.savefig(out_dir_gq+popid + "_gq_distrib.png")
     plt.close()
 
+def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, filter_prefix=None, nb_bins=None):
+    """
+    Generate a multi-page PDF report containing mean variants coverage plot for (selected) chromosomes.
+
+    Parameters:
+    - popid (str): Identifier for the population or sample.
+    - snp_coverage (dict): Dictionary containing genotyping coverage data.
+                          Format: {chromosome: {start_position: mean_coverage}}
+    - out_dir_stats (str): Output directory path where the PDF report will be saved.
+    - nb_plots (int, optional): Number of top chromosomes to include in the report. Default is None (include all).
+    - filter_prefix (str, optional): Regular expression to filter chromosomes by name. Default is None (no filtering).
+    - nb_bins (int, optional): Number of bins to group data points for better visualization. Default is None (no binning).
+
+    Returns:
+    None
+
+    Saves a multi-page PDF report with coverage plots for the specified genotyping data.
+    """
+    if not os.path.exists(out_dir_stats):
+        os.makedirs(out_dir_stats)
+
+    # Sort contigs by CHR name
+    sorted_contigs = sorted(snp_coverage.keys())
+
+    # Filter contigs based on nb_plots and filter_prefix
+    if nb_plots is not None:
+        sorted_contigs = sorted_contigs[:nb_plots]
+
+    if filter_prefix is not None:
+        sorted_contigs = [chrm for chrm in sorted_contigs if re.match(filter_prefix, chrm)]
+
+    chrm_count = len(sorted_contigs)
+    plots_per_page = 8
+    pages_needed = chrm_count // plots_per_page + int(chrm_count % plots_per_page > 0)
+
+    with PdfPages(out_dir_stats + popid + "_variants_prop.pdf") as pdf:
+        for page in range(pages_needed):
+            fig, axes = plt.subplots(4, 2, figsize=(15, 5 * min(plots_per_page, chrm_count - page * plots_per_page)))
+
+            for i in range(plots_per_page):
+                chrm_idx = page * plots_per_page + i
+                if chrm_idx >= chrm_count:
+                    break
+
+                chrm = sorted_contigs[chrm_idx]
+
+                x_values = []
+                y_values = []
+
+                for start_pos_segment in snp_coverage[chrm]:
+                    mean_coverage_for_this_segment = snp_coverage[chrm][start_pos_segment]
+                    y = mean_coverage_for_this_segment
+                    x = start_pos_segment
+                    x_values.append(x)
+                    y_values.append(y)
+
+                # Calculate bin size based on nb_bins
+                if nb_bins is not None:
+                    bin_size = len(x_values) // nb_bins + 1
+                    x_values = np.array(x_values)
+                    y_values = np.array(y_values)
+
+                    x_values_binned = [x_values[i:i + bin_size].mean() for i in range(0, len(x_values), bin_size)]
+                    y_values_binned = [y_values[i:i + bin_size].mean() for i in range(0, len(y_values), bin_size)]
+
+                    x_values = x_values_binned
+                    y_values = y_values_binned
+                
+                axes[i // 2, i % 2].plot(x_values, y_values, label="Chromosome " + chrm)
+                axes[i // 2, i % 2].set_xlabel("Start Position of Segment")
+                axes[i // 2, i % 2].set_ylabel("Mean Variants Prop")
+                axes[i // 2, i % 2].set_title("Chromosome " + chrm + " Average Variant Prop. per Segment")
+
+            # Adjust the height of the figure for a more standard paper ratio
+            fig.set_size_inches(15, 8)
+
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close()
+            
 def plot_smcpp(popid, summary_file, out_dir):
     Ne=[]
     T=[]
