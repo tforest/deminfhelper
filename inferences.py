@@ -204,7 +204,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
     available_cpus = list(range(multiprocessing.cpu_count()))
     # Choose the first 'num_cpus' CPUs
     cpu_affinity = available_cpus[:num_cpus]
-
+    processes = []  # List to store Popen objects
     for contig in contigs:
         # split in separated vcfs
         cmd2 = " ".join(["bcftools", "view", "-t", contig, vcf, "|",
@@ -216,7 +216,9 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
             # Set CPU affinity
             process_pid = process.pid
             os.sched_setaffinity(process_pid, cpu_affinity)
-    process.wait()
+            processes.append(process)
+    for process in processes:
+        process.wait()  # Wait for each subprocess to complete
     # need to add asynchronous. Some jobs finish before others
     # IMPORTANT : Causes crashes with empty files and cannot convert string to float
     for contig in contigs:
@@ -253,7 +255,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
     with open(popid+"_msmc2.log", 'w') as log:
         p=subprocess.Popen(cmd5,stdout=log, shell=True)
 
-def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
+def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+22*2+4+6", num_cpus=4):
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))
     # Choose the first 'num_cpus' CPUs
@@ -274,7 +276,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cp
         "seqtk seq -F '#'", "-", "|",
         "bgzip >", out_dir+"consensus_"+sample+".fq.gz", ";",
         "fq2psmcfa -q1", out_dir+"consensus_"+sample+".fq.gz", ">", out_dir+sample+"_diploid.psmcfa", ";"
-        "psmc -N30 -t15 -r5 -p '10+22*2+4+6' -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa"])
+        "psmc -N30 -t15 -r5 -p '"+p+"' -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa"])
         print(cmd2)
         with open(out_dir+sample+"_consensus.log", 'w') as log:
             process = subprocess.Popen(cmd2, shell=True, stdout=log)

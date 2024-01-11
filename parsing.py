@@ -27,7 +27,7 @@ def parse_config(config_file):
         line=config.readline()
         while line != "":
             if line[0] != "#":
-                    param[line[:-1].split(": ")[0]] = line[:-1].split(": ")[1]
+                    param[line[:-1].split(": ")[0]] = line[:-1].split(": ")[1].strip()
             line = config.readline()
 
     param["folded"]=bool(param["folded"])
@@ -197,7 +197,8 @@ def dadi_output_parse(dadi_output_file):
             all_vals.append([ite, logL, [nuB, nuF, TB, TF], theta])
     return all_vals
 
-def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2):
+def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
+                 keep_modified_vcf = False, modified_vcf_ram = False):
     plink_out_dir = out_dir+"/plink/"
     if not os.path.exists(plink_out_dir):
         os.makedirs(plink_out_dir)
@@ -205,13 +206,16 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2):
     cmd1 = "".join(["bcftools annotate --set-id +'%CHROM:%POS' ", \
                     vcf_file, " -Oz -o ", \
                     plink_out_dir+popid+"_IDs.vcf.gz"])
-    print(cmd1)
-    os.system(cmd1)
     cmd2 = "".join(["plink2 --vcf ", plink_out_dir+popid+"_IDs.vcf.gz", \
                     " --make-bed --allow-extra-chr --max-alleles ", str(ploidy), \
                     " --snps-only --out ", plink_out_dir+popid, " --freq"])
+    print(cmd1)
+    os.system(cmd1)
     print(cmd2)
     os.system(cmd2)
+    if keep_modified_vcf == False:
+        # remove temporary file
+        os.remove(plink_out_dir+popid+"_IDs.vcf.gz")
     cmd3 = "".join(["plink2 --bfile ", plink_out_dir+popid, \
                     " --pca ", str(nb_samples-1), \
                     " --out ", plink_out_dir+popid+".pca --allow-extra-chr --read-freq ", \
@@ -292,8 +296,13 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
                 genome_segments[p][chrm][start_pos]['count_snps'] = 0
                 genome_segments[p][chrm][start_pos]['snps_mean'] = 0
             elif pos > end_pos:
-                # when we switch segment, same CHR
-                # first store previous segment values
+                # when we switch segment, same CHR,
+                # We first store previous segment values.
+
+                # Proportion of SNPs of all sites scanned for this segment
+                # when switching segment: pos-start_pos should be
+                # equal to segment_size, except for the last segment which can be shorter.
+                genome_segments[p][chrm][start_pos]['snps_mean'] = genome_segments[p][chrm][start_pos]['count_snps'] / (pos-start_pos)
                 segments_mean_snps_freq.append(genome_segments[p][chrm][start_pos]['snps_mean'])
                 # change segment
                 start_pos = pos
@@ -318,9 +327,6 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
                                                                                         sfs = genome_segments[p][chrm][start_pos]['sfs'], \
                                                                                         pos_ind = cols_in_vcf["pos_"+p])
                             genome_segments[p][chrm][start_pos]['count_snps'] += 1
-                            # proportion of SNPs of all sites scanned for this segment
-                            # this proportion is evaluated at each SNP 
-                            genome_segments[p][chrm][start_pos]['snps_mean'] = genome_segments[p][chrm][start_pos]['count_snps'] / (pos-start_pos+1)
                             # SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
                             #         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
                             

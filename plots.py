@@ -65,6 +65,37 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
     plt.savefig(out_dir+popid+"_msmc2_inference.png")
     plt.close()
 
+def plot_psmc(popid, sample_names, psmc_output_file):
+    # Create an empty DataFrame to store the data
+    dt_glob = pd.DataFrame(columns=['Sample_ID', 'T_k', 'lambda_k', 'pi_k'])
+
+    for sample_id, sample_name in enumerate(sample_names):
+        print(sample_id)
+
+        # Read the PSMC output file
+        file_path = f"{sample_name}_{popid}/{psmc_output_file}"
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        # Extract relevant information from "RS" lines
+        data = [line.split() for line in lines if line.startswith('RS')]
+        data = [[int(row[1]), float(row[2]), float(row[4]), float(row[5])] for row in data]
+
+        # Create a DataFrame and update the Sample_ID column
+        dt = pd.DataFrame(data, columns=['T_k', 'lambda_k', 'pi_k'])
+        dt['Sample_ID'] = sample_id
+        dt_glob = pd.concat([dt_glob, dt])
+
+        # Plot the PSMC output
+        plt.plot(dt['T_k'], dt['lambda_k'], label=sample_name)
+
+    # Add legend and labels
+    plt.legend(loc='upper right')
+    plt.xlabel('T_k')
+    plt.ylabel('lambda_k')
+    plt.show()
+
+    
 def plot_distrib_gq(popid, gq, out_dir_gq):
     gq = OrderedDict(sorted(gq.items()))
     names = list(gq.keys())
