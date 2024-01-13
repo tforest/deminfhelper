@@ -34,6 +34,8 @@ def parse_config(config_file):
     #param["transformed"]=bool(param["transformed"])
     param["name_pop"] = param["name_pop"].split(",")
     param["npop"]=int(param["npop"])
+    if "cpus" in param:
+        param["cpus"]=int(param["cpus"])
     for p in param["name_pop"]:
         param[p] = [item.strip() for item in param[p].split(",")]
         param["n_"+p] = len(param[p])

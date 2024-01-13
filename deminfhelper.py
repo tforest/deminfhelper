@@ -143,7 +143,8 @@ def main():
             'out_dir_stats': args.out+'/output_stats/',
             'final_out_dir': args.out+'/inferences/',
             # default length of contig to keep, useful for SMC++
-            'length_cutoff': 100000
+            'length_cutoff': 100000,
+            'cpus': 1
         }
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
@@ -347,7 +348,8 @@ def main():
             os.makedirs(param["out_dir_msmc2"])
         for p in param["name_pop"]:
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"])
+                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"],
+                  num_cpus=param["cpus"])
     ##PSMC
     if args.psmc:
         contigs = get_contigs_lengths(param)

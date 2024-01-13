@@ -10,6 +10,8 @@ import subprocess
 import itertools
 import multiprocessing
 import dadi
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
     #writes the input file to run dadi
@@ -37,73 +39,9 @@ def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
 from numpy import array
 from matplotlib import pyplot as plt
 
-def dadi_inf(popid,out_dir,out_dir_d,dict,p,lower_bound,upper_bound,p0,mu,L,gen):
-
-    sfs_folded_hir = dict
-
-    print("SFS recent=", sfs_folded_hir)
-
-    sfs_list = list(sfs_folded_hir.values())
-    fs = dadi.Spectrum(sfs_list, mask_corners = False)
-
-    fs.to_file(out_dir_d+"SFS_output.fs")
-
-    # folding SFS (applying a mask )
-    fs = fs.fold()
-    ns = fs.sample_sizes
-
-    pts_l = [ns[0]+5,ns[0]+15,ns[0]+25]
-
-    #Model Definition : Three epoch
-    func = dadi.Demographics1D.three_epoch
-
-    param_names= ("nuB","nuF","TB","TF")
-
-    #default : lower_bound = [1, 1, 0.05, 0.01]
-    #lower_bound = [0.2, 1, 0.05, 0.01]
-
-    #upper_bound = [10, 4, 0.1, 10]
-    #default : p0 = [0.01,0.001, 0.01, 0.01]
-    #p0 = [1,1, 0.01, 0.01]
-
-    #   1. Make extrapolation function:
-    func_ex = dadi.Numerics.make_extrap_log_func(func)
-    #   2. Perturb parameters:
-    p0 = dadi.Misc.perturb_params(p0, fold=1, upper_bound=upper_bound, lower_bound=lower_bound)
-    #   3. Optimize:
-
-    maxiter = 5000
-
-    popt = dadi.Inference.optimize_log(p0, fs, func_ex, pts_l,
-                                    lower_bound=lower_bound,
-                                    upper_bound=upper_bound,
-                                    verbose=len(p0), maxiter=maxiter, output_file = out_dir_d+"output_"+p+".dadi")
-
-    print("POPT",popt)
-    #  4. Calculate best fit model:
-    model = func_ex(popt, ns, pts_l)
-    #  5. Compute likelihood of the data given the model allele frequency spectrum:
-    ll_model = dadi.Inference.ll_multinom(model, fs)
-    #  6. Compute the likelihood of the data to itself (best possible LL):
-    ll_data=dadi.Inference.ll_multinom(fs, fs)
-    #  7. Calculate the best fit theta:
-    theta = dadi.Inference.optimal_sfs_scaling(model, fs)
-    #  8. Model specific scaling of parameters (will depend on mu and L that you supply):
-    Nanc=theta / (4*float(mu)*float(L))
-    nu_scaled_dip=popt[0]*Nanc
-    print(nu_scaled_dip)
-    T_scaled_gen=popt[1]*2*Nanc
-    scaled_param_names=("Nanc_FromTheta_scaled_dip","nu_scaled_dip","T_scaled_gen")
-    scaled_popt=(Nanc,nu_scaled_dip,T_scaled_gen*float(gen))
-    fT = open(out_dir_d+"popt_"+popid+"_dadi.txt", 'w')
-    fT.writelines(str(scaled_popt))
-    fT.close()
-
-    print("scaled popt", scaled_popt)
-    print("theta", theta)
-    print("T_scaled_gen", scaled_popt[2])
-
-def run_dadi_cli(popid, out_dir, sfs_path, optimizations=None, p0 = [1, 1, 10, 5], lower_bounds = [0.1, 0.1, 0.1, 0.1],
+def run_dadi_cli(popid, out_dir, sfs_path, optimizations=None,
+                 p0 = [1, 1, 10, 5],
+                 lower_bounds = [0.1, 0.1, 0.1, 0.1],
                  upper_bounds = [50, 5, 30, 10]):
     if optimizations == None:
         check_convervence_step = 10
@@ -167,94 +105,76 @@ def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     cmd2 = "".join([ "bash ", out_dir, popid, ".blueprint.sh"])
     os.system(cmd2)
 
-
-def msmc(n, line, header):
-    if header :
-        if ("##fileformat" in line) :
-            for k in range(n):
-                vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='w')
-                vcf_msmc.write(line)
-                vcf_msmc.close()
-        if ("##FILTER" in line) :
-            for k in range(n):
-                vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='a')
-                vcf_msmc.write(line)
-                vcf_msmc.close()
-        if ("#CHROM" in line):
-            header ='\t'.join(line.split("\t")[:9])
-            indiv='\t'.join(line[:-1].split("\t")[9:])
-            for k in range(n):
-                vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='a')
-                vcf_msmc.write(header+'\t'+indiv.split("\t")[k]+'\n')
-                vcf_msmc.close()
-    else :
-        gens=re.findall('./.',line)
-        for k in range(n):
-            vcf_msmc = open("VCF_input_MSMC_"+str(k)+".txt",mode='a')
-            vcf_msmc.write('\t'.join(line.split("\t")[0:9])+"\t"+gens[k]+"\n")
-            vcf_msmc.close()
-
-def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=4):
-    #TODO
-    #contigs = contigs[:4]
+def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=1):
     if len(contigs) == 0:
         print("Error! No contigs to use! Make sure the threshold matches your data.")
+    deminfhelper_directory = os.path.dirname(os.path.abspath(__file__))
 
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))
     # Choose the first 'num_cpus' CPUs
     cpu_affinity = available_cpus[:num_cpus]
-    processes = []  # List to store Popen objects
+    
+    processes = []  # List to store Process objects
+
     for contig in contigs:
-        # split in separated vcfs
+        # Process each contig
         cmd2 = " ".join(["bcftools", "view", "-t", contig, vcf, "|",
-                "bcftools", "query", "-", "-f", "'%INFO/DP\n'", "|",
-                "awk '{ sum += $1 } END { print sum/NR }'"])
+                         "bcftools", "query", "-", "-f", "'%INFO/DP\n'", "|",
+                         "awk '{ sum += $1 } END { print sum/NR }' | ",
+                         '{ read value && minDP=$(echo "$value / 2" | bc) && maxDP=$(echo "$value * 2" | bc);};',
+                         "bcftools view -g ^miss -t", contig, vcf,
+                         "|vcftools --vcf - --minDP $minDP --maxDP $maxDP",
+                         "--recode --stdout | gzip -c >", out_dir+contig+".vcf.gz ;",
+                         "python3", deminfhelper_directory+"/scripts/msmc-tools/generate_multihetsep.py",
+                         out_dir+contig+".vcf.gz", ">", out_dir+contig+"_msmc_input.txt"])
         print(cmd2)
-        with open(out_dir+contig+"_mean_DP.txt", 'w') as log:
-            process = subprocess.Popen(cmd2, shell=True, stdout=log)
-            # Set CPU affinity
-            process_pid = process.pid
-            os.sched_setaffinity(process_pid, cpu_affinity)
-            processes.append(process)
+        p = multiprocessing.Process(target=subprocess.run, args=(cmd2,), kwargs={'shell': True, 'check': True})
+        processes.append(p)
+        p.start()
+    # Wait for all processes to finish
     for process in processes:
-        process.wait()  # Wait for each subprocess to complete
-    # need to add asynchronous. Some jobs finish before others
-    # IMPORTANT : Causes crashes with empty files and cannot convert string to float
-    for contig in contigs:
-        # now that we have coverage, run in parallel the vcf.gz splitting
-        with open(out_dir+contig+"_mean_DP.txt", 'r') as filin:
-            meanDP=float(filin.readline().strip())
-        minDP = meanDP/2
-        maxDP = meanDP*2
-        # omit sites with missing data "./."
-        cmd3 = " ".join(["bcftools view -g ^miss -t", contig, vcf,
-        "|vcftools --vcf - --minDP", str(minDP), "--maxDP", str(maxDP),
-        "--recode --stdout | gzip -c >", out_dir+contig+".vcf.gz"])
-        print(cmd3)
-        process = subprocess.Popen(cmd3, shell=True)
-        # Set CPU affinity
-        process_pid = process.pid
-        os.sched_setaffinity(process_pid, cpu_affinity)
-    process.wait()
-    deminfhelper_directory = os.path.dirname(os.path.abspath(__file__))
-    for contig in contigs:
-        cmd4 = " ".join(["python3",
-        deminfhelper_directory+"/scripts/msmc-tools/generate_multihetsep.py",
-        contig+".vcf.gz", ">", out_dir+contig+"_msmc_input.txt"])
-        print(cmd4)
-        with open(out_dir+contig+"_msmc_input.log", 'w') as log:
-            process = subprocess.Popen(cmd4, shell=True, stdout=log)
-            # Set CPU affinity
-            process_pid = process.pid
-            os.sched_setaffinity(process_pid, cpu_affinity)
-    process.wait()
-    # Run MSMC2 combining information from all contigs
-    cmd5 = " ".join(["msmc2_Linux", out_dir+"*_msmc_input.txt -o", out_dir+popid+"_msmc2"])
+        process.join()
+
+    #List only non-empty files for msmc2
+    kept_files = [f for f in os.listdir(out_dir) if os.path.isfile(os.path.join(out_dir, f)) and f.endswith("_msmc_input.txt") and os.path.getsize(os.path.join(out_dir, f)) > 0]
+
+    if len(kept_files) == 0:
+        print("Error! There are no usable file for msmc2, all inputs are empty!")
+        exit(0)
+
+    # Process each non-empty file
+    for filename in kept_files:
+        lines_to_keep = []
+        with open(os.path.join(out_dir, filename), 'r') as file:
+            for line in file:
+                columns = line.strip().split('\t')
+                if len(columns) >= 3 and int(columns[2]) > 0:
+                    lines_to_keep.append(line)
+
+        # Write back to the file with non-positive lines removed
+        with open(os.path.join(out_dir, filename), 'w') as file:
+            file.writelines(lines_to_keep)
+
+        # Print information or run MSMC2 if needed
+        if lines_to_keep:
+            print(f"Processed {filename} - Non-positive lines removed.")
+        else:
+            print(f"{filename} has only non-positive lines and is now empty.")
+
+    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2"])
+
     print(cmd5)
     with open(popid+"_msmc2.log", 'w') as log:
-        p=subprocess.Popen(cmd5,stdout=log, shell=True)
+        subprocess.run(cmd5, stdout=log, shell=True)
 
+    # # Run MSMC2 combining information from all contigs
+    # cmd5 = " ".join(["msmc2_Linux", out_dir+"*_msmc_input.txt -o", out_dir+popid+"_msmc2"])
+    # print(cmd5)
+    # with open(popid+"_msmc2.log", 'w') as log:
+    #     p = subprocess.Popen(cmd5, stdout=log, shell=True)
+    #     p.wait()
+        
 def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+22*2+4+6", num_cpus=4):
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))
