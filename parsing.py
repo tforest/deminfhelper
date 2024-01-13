@@ -21,6 +21,24 @@ else:
 import re
 from tqdm import tqdm  # Import tqdm for the progress bar
 
+
+def distrib_GQ(GQ_pop, line = [], pos_ind = None): #PL is a dict
+    samples = [line[i] for i in pos_ind]
+    gq_line = [i[4:] for i in samples] #we get the genotypes
+    gq_line = [i.split(",") for i in gq_line]
+    for sublist in gq_line:
+        gq2 = [int(i) for i in sublist]
+        gq2 = [i - np.min(gq2) for i in gq2]
+        gq2.remove(0)
+        min = np.min(gq2)
+        bin = min - int(str(min)[-1])
+        if bin in GQ_pop.keys():
+            GQ_pop[bin] = GQ_pop[bin]+1
+        else:
+            GQ_pop[bin] = 1
+    return(GQ_pop)
+
+
 def parse_config(config_file):
     param = {}
     with open(config_file, "rt") as config:
@@ -252,15 +270,15 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
         GQ_dict = {}
         contigs = []
         cols_in_vcf = {}
+        
         segments_mean_snps_freq = []
         Nseq = 0
         All_snp_count = 0
-        Kept_snp_count = 0
-        if SFS:
-            # we initialize a sfs for each population
-            for p in PARAM["name_pop"]:
-                genome_segments[p] = {}
-                SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True))
+        Kept_snp_count = 0    
+        # we initialize a sfs for each population
+        for p in PARAM["name_pop"]:
+            genome_segments[p] = {}            
+            SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True))
         if GQ:
             for p in PARAM["name_pop"]:
                         GQ_dict[p] = {}
@@ -271,20 +289,31 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
         # we read all the lines of the vcf
         while line != "":
             if line[0:8] == "##contig":
+                # info about contigs from which the VCF was generated
                 # keep only contigs that are longer than the length_cutoff parameter
                 contig_length = int(re.split('[=,]', line)[-1][:-2])
                 if contig_length >= length_cutoff:
                     contigs.append(re.split('[=,]', line)[2])
                     Nseq += contig_length
+                # skip the rest of the code for this line
+                line = vcf.readline()                
+                continue
             if line[0:6] == "#CHROM":
+                # parsing the header line
                 for p in PARAM["name_pop"]:
                     pos_ind_pop = []
                     for ind in PARAM[p]:
                         pos_ind_pop.append(line[:-1].split("\t").index(ind))
                     cols_in_vcf["pos_"+p] = pos_ind_pop
-            if line.startswith("#"):
+                # skip the rest of the code for this line
                 line = vcf.readline()
                 continue
+            if line.startswith("#"):
+                # ignore other comments
+                line = vcf.readline()
+                continue
+            # the line is a variant, count it
+            All_snp_count += 1
             chrm = line.split()[0]
             pos = int(line.split()[1])
             if chrm not in genome_segments[p].keys():
@@ -315,30 +344,26 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_siz
                 genome_segments[p][chrm][start_pos]['count_snps'] = 0
                 genome_segments[p][chrm][start_pos]['snps_mean'] = 0
 
-            if SFS or GQ:
-                All_snp_count += 1
-                if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
-                    Kept_snp_count += 1
-                    split_line = line.split("\t")
-                    if SFS:
-                        for p in PARAM["name_pop"]:
-                            genome_segments[p][chrm][start_pos]['sfs'] = sfs.build_sfs(n=PARAM["n_"+p], \
-                                                                                        folded=PARAM["folded"], \
-                                                                                        sfs_ini = False, \
-                                                                                        line = split_line, \
-                                                                                        sfs = genome_segments[p][chrm][start_pos]['sfs'], \
-                                                                                        pos_ind = cols_in_vcf["pos_"+p])
-                            genome_segments[p][chrm][start_pos]['count_snps'] += 1
-                            # SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
-                            #         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
-                            
-                    if GQ:
-                        for p in PARAM["name_pop"]:
-                            GQ_dict[p] = distrib_GQ(GQ_pop = GQ_dict[p], line = split_line, pos_ind = PARAM["pos_"+p])
+            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
+                Kept_snp_count += 1
+                split_line = line.split("\t")
+                for p in PARAM["name_pop"]:
+                    genome_segments[p][chrm][start_pos]['sfs'] = sfs.build_sfs(n=PARAM["n_"+p], \
+                                                                                folded=PARAM["folded"], \
+                                                                                sfs_ini = False, \
+                                                                                line = split_line, \
+                                                                                sfs = genome_segments[p][chrm][start_pos]['sfs'], \
+                                                                                pos_ind = cols_in_vcf["pos_"+p])
+                    genome_segments[p][chrm][start_pos]['count_snps'] += 1
+                    # SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
+                    #         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
+
+                if GQ:
+                    for p in PARAM["name_pop"]:
+                        GQ_dict[p] = distrib_GQ(GQ_pop = GQ_dict[p], line = split_line, pos_ind = cols_in_vcf["pos_"+p])
             line = vcf.readline()
             pbar.update(1)
     pbar.close()  # Close the progress bar when done
-
     print("SFS parsing: Done. Filtering variants keeping only segments with sufficient coverage.")
     sorted_data = np.sort(segments_mean_snps_freq)
     data_median = np.median(sorted_data)

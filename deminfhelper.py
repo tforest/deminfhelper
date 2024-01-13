@@ -324,7 +324,7 @@ def main():
             os.makedirs(param["out_dir_gq_distrib"])
         GQ_dict = res_pars[1]
         for p in param["name_pop"]:
-            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"] )
+            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_stats"] )
     # PCA
     if args.pca:
         if not os.path.exists(param["out_dir_stats"]):
