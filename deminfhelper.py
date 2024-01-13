@@ -46,13 +46,13 @@ def parse_args():
     parser.add_argument("--plot_msmc2", help = "to plot msmc2", action = "store_true")
     #PSMC
     parser.add_argument("--psmc", help = "to run PSMC", action = "store_true")
+    parser.add_argument("--plot_psmc", help = "to plot psmc inference", action = "store_true")
     #PL distribution
     parser.add_argument("--gq_distrib", help = "to compute the GQ (genotype quality) distribution", action = "store_true")
     #SMCPP
     parser.add_argument("--smcpp", help = "run smcpp", action = "store_true")
     parser.add_argument("--plot_smcpp", help = "to plot smcpp inference", action = "store_true")
     parser.add_argument("--Gplot", help = "to plot all inferences on the same graph", action = "store_true")
-
     parser.add_argument("--folded", help = "Fold the SFS. Default: True", action = "store_true", default=True)
     # Statistics
     # PCA
@@ -358,6 +358,15 @@ def main():
         for p in param["name_pop"]:
             psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
+    ## Plot PSMC
+    if args.plot_psmc:
+        for p in param["name_pop"]:
+            plot_psmc(popid = p, sample_names = param[p],
+                      psmc_output_file = param["out_dir_psmc"]+"/"+p+"_combined.psmc.final",
+                      plot_output_prefix = param["out_dir_psmc"]+"/"+p,
+                      gen_time=param["gen_time"], mut_rate=param["mut_rate"],
+                      out_dir = param["final_out_dir"])
+
     if args.plot_smcpp:
         for p in param["name_pop"]:
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])

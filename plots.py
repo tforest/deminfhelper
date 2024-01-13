@@ -42,7 +42,7 @@ def plot_stairwayplot2(popid, summary_file, out_dir):
     plt.title(popid)
     plt.xlabel('Time (in years)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_stw_inference.png")
+    plt.savefig(out_dir+popid+"_stw_plot.png")
     plt.close()
 
 def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
@@ -62,39 +62,18 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
     plt.title(popid)
     plt.xlabel('Time (in years)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_msmc2_inference.png")
+    plt.savefig(out_dir+popid+"_msmc2_plot.png")
     plt.close()
 
-def plot_psmc(popid, sample_names, psmc_output_file):
-    # Create an empty DataFrame to store the data
-    dt_glob = pd.DataFrame(columns=['Sample_ID', 'T_k', 'lambda_k', 'pi_k'])
-
-    for sample_id, sample_name in enumerate(sample_names):
-        print(sample_id)
-
-        # Read the PSMC output file
-        file_path = f"{sample_name}_{popid}/{psmc_output_file}"
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-
-        # Extract relevant information from "RS" lines
-        data = [line.split() for line in lines if line.startswith('RS')]
-        data = [[int(row[1]), float(row[2]), float(row[4]), float(row[5])] for row in data]
-
-        # Create a DataFrame and update the Sample_ID column
-        dt = pd.DataFrame(data, columns=['T_k', 'lambda_k', 'pi_k'])
-        dt['Sample_ID'] = sample_id
-        dt_glob = pd.concat([dt_glob, dt])
-
-        # Plot the PSMC output
-        plt.plot(dt['T_k'], dt['lambda_k'], label=sample_name)
-
-    # Add legend and labels
-    plt.legend(loc='upper right')
-    plt.xlabel('T_k')
-    plt.ylabel('lambda_k')
-    plt.show()
-
+def plot_psmc(popid, sample_names, psmc_output_file,
+              plot_output_prefix, gen_time, mut_rate,
+              out_dir, x=0):
+    # x: minimum generations, 0 for auto [10000]
+    # R: DO not remove temporary files
+    cmd = " ".join(["psmc_plot.pl -g", str(gen_time), "-x", str(x),
+                    "-u", str(mut_rate), "-R", plot_output_prefix, psmc_output_file])
+    os.system(cmd)
+    os.system(f"cp {plot_output_prefix}.eps {out_dir+popid}_psmc_plot.eps")
     
 def plot_distrib_gq(popid, gq, out_dir_gq):
     gq = OrderedDict(sorted(gq.items()))
@@ -203,7 +182,7 @@ def plot_smcpp(popid, summary_file, out_dir):
     plt.title(popid)
     plt.xlabel('Time (in years)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_smcpp_inference.png")
+    plt.savefig(out_dir+popid+"_smcpp_plot.png")
     plt.close()
     
 def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_time,
@@ -250,7 +229,7 @@ def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_ti
     if ylim:
         plt.ylim(ylim)
     plt.title(title)
-    plt.savefig(out_dir+"output_plot_"+name_pop+"dadi.png")
+    plt.savefig(out_dir+"/"+name_pop+"_dadi_plot.png")
     plt.close()
 
 def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_file,summary_file2, max_v = -10**6, title="estimates",):
@@ -314,7 +293,7 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     #plt.xlim(0,18000)
     plt.xlabel('Time (in years)')
     plt.ylabel('Na')
-    plt.savefig(out_dir+popid+"_GPLOT_inference.png")
+    plt.savefig(out_dir+popid+"_all_plot.png")
     plt.close()
 
 def plot_pca(plink_eigenvec, plink_eigenval):

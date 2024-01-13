@@ -190,6 +190,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
     #         process_pid = process.pid
     #         os.sched_setaffinity(process_pid, cpu_affinity)
     # process.wait()
+    processes = []
     for sample in pop_ind:
         cmd2 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "|",
         # read from stdin
@@ -203,8 +204,10 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
             # Set CPU affinity
             process_pid = process.pid
             os.sched_setaffinity(process_pid, cpu_affinity)
-    process.wait()
-    cmd3 = " ".join(["cat", out_dir+"*.psmc >", out_dir+"combined.psmc.final", ";"
+            processes.append(process)
+    for process in processes:
+        process.wait()
+    cmd3 = " ".join(["cat", out_dir+"*.psmc >", out_dir+'/'+popid+"_combined.psmc.final", ";"
     "psmc_plot.pl", "-g", gen_time, "-x", "10", "-u", mu, "-M '"+",".join(pop_ind)+"'", popid, out_dir+"combined.psmc.final" ,";",
     "mv", popid+".*.par", out_dir, "; mv", popid+"*.eps", out_dir])
     print(cmd3)
