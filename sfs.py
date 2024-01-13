@@ -41,19 +41,3 @@ def transform_sfs(sfs, n, folded):
         return [round(i * sfs[i-1]) for i in range(len(sfs))]
 
 
-def distrib_GQ(GQ_pop, line = [], pos_ind = None): #PL is a dict
-    samples = [line[i] for i in pos_ind]
-    gq_line = [i[4:] for i in samples] #we get the genotypes
-    gq_line = [i.split(",") for i in gq_line]
-    for sublist in gq_line:
-        gq2 = [int(i) for i in sublist]
-        gq2 = [i - np.min(gq2) for i in gq2]
-        gq2.remove(0)
-        min = np.min(gq2)
-        bin = min - int(str(min)[-1])
-        if bin in GQ_pop.keys():
-            GQ_pop[bin] = GQ_pop[bin]+1
-        else:
-            GQ_pop[bin] = 1
-    return(GQ_pop)
-

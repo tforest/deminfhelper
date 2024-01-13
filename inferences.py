@@ -126,7 +126,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=1):
                          "bcftools view -g ^miss -t", contig, vcf,
                          "|vcftools --vcf - --minDP $minDP --maxDP $maxDP",
                          "--recode --stdout | gzip -c >", out_dir+contig+".vcf.gz ;",
-                         "python3", deminfhelper_directory+"/scripts/msmc-tools/generate_multihetsep.py",
+                         "python3", deminfhelper_directory+"/scripts/generate_multihetsep.py",
                          out_dir+contig+".vcf.gz", ">", out_dir+contig+"_msmc_input.txt"])
         print(cmd2)
         p = multiprocessing.Process(target=subprocess.run, args=(cmd2,), kwargs={'shell': True, 'check': True})
