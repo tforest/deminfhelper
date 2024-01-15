@@ -17,29 +17,6 @@ from tqdm import tqdm
 import gzip 
 import parsing
 
-def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
-    #writes the input file to run dadi
-    #n est l'effectif de la pop
-    #sfs est une np.array avec chaque colonne correspondant à un effectif de variant et chaque ligne
-    #correspondant à une population
-    #mask = True si masked, False sinon ()
-    #folded = True si folded, False sinon
-    n=n+1
-    #Première ligne :
-    dim =str(n)+' '+["unfolded","folded"][folded]
-    #ligne de sfs :
-    sfs_write=list(itertools.chain.from_iterable([["fs[",str(sfs[i]),"] "] for i in range (len(sfs))]))
-    sfs_write=(''.join(map(str,sfs_write))) #concaténation de la liste en une chaîne de caractères
-    sfs_write=sfs_write[0:len(sfs_write)-1]#retrait du dernier espace de la ligne
-    #écriture du fichier :
-    if folded == False:
-        with open(out_dir+popid+'_dadi_input.txt', 'w') as f:
-            f.write(dim+'\n'+sfs_write+"\n"+["0","1"][mask])
-    if folded == True:
-        with open(out_dir+popid+'_dadi_input.txt', 'w') as f:
-            f.write(dim+'\n'+sfs_write+" fs[0]"*(n-1)+"\n"+["0","1"][mask])
-
-
 from numpy import array
 from matplotlib import pyplot as plt
 
@@ -239,15 +216,6 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
                 pbar.update(1)
             pbar.close()
 
-    #TODO
-    # for sample in pop_ind:
-    #     cmd1 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "-o", out_dir+"consensus_"+sample+".fa"])
-    #     with open(out_dir+sample+"_consensus.log", 'w') as log:
-    #         process = subprocess.Popen(cmd1, shell=True, stdout=log)
-    #         # Set CPU affinity
-    #         process_pid = process.pid
-    #         os.sched_setaffinity(process_pid, cpu_affinity)
-    # process.wait()
     processes = []
     for sample in pop_ind:
         cmd2 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "|",
@@ -266,7 +234,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
     for process in processes:
         process.wait()
     cmd3 = " ".join(["cat", out_dir+"*.psmc >", out_dir+'/'+popid+"_combined.psmc.final", ";"
-    "psmc_plot.pl", "-g", gen_time, "-x", "10", "-u", mu, "-M '"+",".join(pop_ind)+"'", popid, out_dir+"combined.psmc.final" ,";",
+    "psmc_plot.pl", "-g", gen_time, "-x", "10", "-u", mu, "-M '"+",".join(pop_ind)+"'", popid, out_dir+'/'+popid+"_combined.psmc.final" ,";",
     "mv", popid+".*.par", out_dir, "; mv", popid+"*.eps", out_dir])
     print(cmd3)
     with open(out_dir+popid+"_psmc_combine.log", 'w') as log:
