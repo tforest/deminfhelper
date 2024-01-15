@@ -6,12 +6,16 @@ Creates the input files to run the inferences softwares and run the softwares
 
 import re
 import os
+from textwrap import wrap
 import subprocess
 import itertools
 import multiprocessing
 import dadi
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+import gzip 
+import parsing
 
 def input_dadi(popid, sfs, folded, n, out_dir, mask = True):
     #writes the input file to run dadi
@@ -174,12 +178,66 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=1):
     # with open(popid+"_msmc2.log", 'w') as log:
     #     p = subprocess.Popen(cmd5, stdout=log, shell=True)
     #     p.wait()
-        
+
 def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+22*2+4+6", num_cpus=4):
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))
     # Choose the first 'num_cpus' CPUs
     cpu_affinity = available_cpus[:num_cpus]
+
+    if not ref_genome:
+        # WIP
+        ## will create a fake ref genome for bcftools consensus
+        print("Warning: No Reference genome provided. A fake ref genome is being generated for bcftools consensus.")
+        
+        ref_genome = out_dir+popid+".fa"
+
+        # Initialize variables
+        current_chrom = None
+        current_pos = 0
+        old_pos = 0
+
+        with gzip.open(vcf, 'rt') as vcf_file, open(ref_genome, 'w') as fasta_file:
+            line = vcf_file.readline()
+            pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True)
+            # start parsing the file
+            while line:
+                if line.startswith("#"):
+                    line = vcf_file.readline()
+                    continue
+                fields = line.split()
+                chrom = fields[0]
+                pos = int(fields[1])
+                if pos == old_pos:
+                    line = vcf_file.readline()
+                    continue
+                ref_allele = fields[3]
+                alt_allele = fields[4]
+                if chrom != current_chrom:
+                    # write header
+                    fasta_file.write(f">{chrom}\n")
+                    current_chrom = chrom
+                    # a CHRM starts at pos 1
+                    writing_head = 1
+                    # handle indels
+                if pos < writing_head:
+                    ref_allele = ref_allele[writing_head-pos:]
+                    pos = writing_head
+                current_pos = pos
+                # write N until the current Ref
+                for i in range(writing_head, current_pos):
+                    fasta_file.write("N")
+                    # print(writing_head, current_pos, current_pos-1, ref_allele) 
+                    if i % 70 == 0:
+                        fasta_file.write("\n")
+                fasta_file.write(f"{ref_allele}")
+                if (current_pos+len(ref_allele)-1) % 70 == 0:
+                    fasta_file.write("\n")
+                writing_head = current_pos+len(ref_allele)
+                old_pos = pos
+                line = vcf_file.readline()
+                pbar.update(1)
+            pbar.close()
 
     #TODO
     # for sample in pop_ind:

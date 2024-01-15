@@ -63,7 +63,10 @@ def parse_config(config_file):
     if "length_cutoff" not in param:
         # default contig size to keep is 1Mb
         param["length_cutoff"] = 100000
-
+    if "ref_genome" not in param:
+        param["ref_genome"] = None
+    if 'length_cutoff' not in param.keys():
+        param["length_cutoff"] = length_cutoff
     return param
 
 def update_config(config_dict, config_file):
@@ -167,26 +170,48 @@ def parse_sfs(sfs_file):
     # final return of SFS as a list
     return masked_spectrum
 
-def get_contigs_lengths(param, length_cutoff=100000):
-    contigs = []
-    if 'length_cutoff' not in param.keys():
-        param["length_cutoff"] = length_cutoff
-    else:
-        length_cutoff = param["length_cutoff"]
+def get_contigs_lengths(vcf, length_cutoff=100000, only_names = False):
+    """Parsing gzipped VCF header to get contig lengths from the ##contig comments
+    """
+    contigs = {}
+    print(vcf)
     # Parsing VCF in gzip format
-    with gzip.open(param["vcf"], 'rt') as vcf:
+    with gzip.open(vcf, 'rt') as vcf:
         line = vcf.readline()
         while line != "":
             if line[0:8] == "##contig":
-                # keep only contigs that are longer than the length_cutoff parameter
                 contig_length = int(re.split('[=,]', line)[-1][:-2])
+                contig_name = re.split('[=,]', line)[2]
+                # keep only contigs that are longer than the length_cutoff parameter
                 if contig_length >= length_cutoff:
-                    contigs.append(re.split('[=,]', line)[2])
-            if line.startswith("#"):
-                pass
+                    contigs[contig_name] = contig_length
+            elif line.startswith("#"):
+                line = vcf.readline()
+                continue
             else:
                 break
             line = vcf.readline()
+    #If not ##contig in the comments, need to estimate parsing all the file
+    if len(contigs)==0:
+        print("Warning: No ##contig info in VCF header. Need to parse the whole file...")
+        pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar
+        contigs_dict = {}
+        with gzip.open(vcf, 'rt') as vcf:
+            line = vcf.readline()
+            while line != "":
+                if line.startswith("#"):
+                    continue
+                else:
+                    line = line.split()
+                    pos = line[1]
+                    chrm = line[0]
+                    conitgs[chrm] = pos
+                # at the end, change line
+                pbar.update(1)
+                line = vcf.readline()
+        pbar.close()
+    if only_names:
+        return list(contigs.keys())
     return contigs
 
 def dadi_output_parse(dadi_output_file):

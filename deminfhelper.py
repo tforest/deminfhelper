@@ -144,6 +144,7 @@ def main():
             'final_out_dir': args.out+'/inferences/',
             # default length of contig to keep, useful for SMC++
             'length_cutoff': 100000,
+            'ref_genome': None,
             'cpus': 1
         }
         for p in param["name_pop"]:
@@ -335,7 +336,7 @@ def main():
                          out_dir = param["out_dir_stats"])
     ##SMC++
     if args.smcpp:
-        contigs = get_contigs_lengths(param)
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff=param["length_cutoff"])
         if not os.path.exists(param["out_dir_smcpp"]):
             os.makedirs(param["out_dir_smcpp"])
         for p in param["name_pop"]:
@@ -343,7 +344,7 @@ def main():
                    out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"])
     ##MSMC2
     if args.msmc2:
-        contigs = get_contigs_lengths(param)
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"])
         if not os.path.exists(param["out_dir_msmc2"]):
             os.makedirs(param["out_dir_msmc2"])
         for p in param["name_pop"]:
@@ -352,7 +353,7 @@ def main():
                   num_cpus=param["cpus"])
     ##PSMC
     if args.psmc:
-        contigs = get_contigs_lengths(param)
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"])
         if not os.path.exists(param["out_dir_psmc"]):
             os.makedirs(param["out_dir_psmc"])
         for p in param["name_pop"]:
