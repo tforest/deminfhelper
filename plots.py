@@ -122,7 +122,7 @@ def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, 
     plots_per_page = 8
     pages_needed = chrm_count // plots_per_page + int(chrm_count % plots_per_page > 0)
 
-    with PdfPages(out_dir_stats + popid + "_variants_prop.pdf") as pdf:
+    with PdfPages(out_dir_stats + popid + "_variants_dist.pdf") as pdf:
         for page in range(pages_needed):
             fig, axes = plt.subplots(4, 2, figsize=(15, 5 * min(plots_per_page, chrm_count - page * plots_per_page)))
 
@@ -157,8 +157,10 @@ def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, 
                 
                 axes[i // 2, i % 2].plot(x_values, y_values, label="Chromosome " + chrm)
                 axes[i // 2, i % 2].set_xlabel("Start Position of Segment")
-                axes[i // 2, i % 2].set_ylabel("Mean Variants Prop")
-                axes[i // 2, i % 2].set_title("Chromosome " + chrm + " Average Variant Prop. per Segment")
+                # axes[i // 2, i % 2].set_ylabel("Mean Variants Prop")
+                # axes[i // 2, i % 2].set_title("Chromosome " + chrm + " Average Variant Prop. per Segment")
+                axes[i // 2, i % 2].set_ylabel("Dist. between SNPs")
+                axes[i // 2, i % 2].set_title("Chromosome " + chrm + " distance between variants")
 
             # Adjust the height of the figure for a more standard paper ratio
             fig.set_size_inches(15, 8)

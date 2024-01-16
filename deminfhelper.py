@@ -171,11 +171,11 @@ def main():
             # But not all of them were used for SFS: some of them (e.g. total number of Y SNP’s) were filtered out.
             # Then we should count filtered SNP’s and take L value the following way:
             # L = (X - Y) / X * Nseq
-            param["L"] = res_pars[3]
+            param["L"] = res_pars[2]
             print("Computed L=", param["L"])
         if args.config_file:
             # add/update L_computed in the config file
-            param["L_computed"] = res_pars[3]
+            param["L_computed"] = res_pars[2]
             print("Adding L_computed=",  param["L_computed"], "to", args.config_file)
             update_config(config_dict = param, 
                           config_file = args.config_file)
@@ -186,7 +186,7 @@ def main():
         SFS_dict = res_pars[0]
         for p in param["name_pop"]:
             # Build coverage plot with current filter
-            genotyping_coverage_plot(popid = p, snp_coverage = res_pars[4],
+            genotyping_coverage_plot(popid = p, snp_coverage = res_pars[3],
                                      out_dir_stats = param["out_dir_stats"],
                                      filter_prefix = None, nb_bins = 10)
             if param["folded"]:
