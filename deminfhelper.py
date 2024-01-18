@@ -139,7 +139,7 @@ def main():
             'out_dir_dadi': args.out+'/output_dadi/',
             'out_dir_smcpp': args.out+'/output_smcpp/',
             'plot_file_smcpp': args.out+'/output_smcpp/hirrus_inference.csv',
-            'out_dir_gq_distrib': args.out+'/output_gq_distrib/',
+            'out_dir_gq_distrib': args.out+'/output_stats/',
             'out_dir_stats': args.out+'/output_stats/',
             'final_out_dir': args.out+'/inferences/',
             # default length of contig to keep, useful for SMC++
@@ -325,7 +325,7 @@ def main():
             os.makedirs(param["out_dir_gq_distrib"])
         GQ_dict = res_pars[1]
         for p in param["name_pop"]:
-            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_stats"] )
+            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"] )
     # PCA
     if args.pca:
         if not os.path.exists(param["out_dir_stats"]):

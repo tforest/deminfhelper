@@ -54,6 +54,8 @@ def parse_config(config_file):
     param["npop"]=int(param["npop"])
     if "cpus" in param:
         param["cpus"]=int(param["cpus"])
+    else:
+        param["cpus"]=None
     for p in param["name_pop"]:
         param[p] = [item.strip() for item in param[p].split(",")]
         param["n_"+p] = len(param[p])
@@ -63,6 +65,8 @@ def parse_config(config_file):
     if "length_cutoff" not in param:
         # default contig size to keep is 1Mb
         param["length_cutoff"] = 100000
+    else:
+        param["length_cutoff"] = int(param["length_cutoff"])
     if "ref_genome" not in param:
         param["ref_genome"] = None
     if 'length_cutoff' not in param.keys():
@@ -269,7 +273,7 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
     print(cmd3)
     os.system(cmd3)
     # Generate plot
-    plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval")
+    plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval", popid = popid, out_dir = out_dir)
 # Function using segments    
 # def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, segments_size = 1000):
 #     # cutoff is the minimum size of each contig to be used

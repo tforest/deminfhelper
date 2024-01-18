@@ -298,7 +298,7 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     plt.savefig(out_dir+popid+"_all_plot.png")
     plt.close()
 
-def plot_pca(plink_eigenvec, plink_eigenval):
+def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir):
     # Load eigenvectors and eigenvalues
     with open(plink_eigenvec) as input:
         for line in input:
@@ -322,7 +322,7 @@ def plot_pca(plink_eigenvec, plink_eigenval):
     plt.title(f'PCA: PC1 vs PC2 ({num_components} components)')
     plt.xlabel(f'PC1 ({variance_explained[0]:.2f}%)')
     plt.ylabel(f'PC2 ({variance_explained[1]:.2f}%)')
-    plt.show()
+    plt.savefig(out_dir+"/"+popid+"_PCA.png")
 
     # Bar plot of explained variance
     plt.figure(figsize=(10, 6))
@@ -330,4 +330,4 @@ def plot_pca(plink_eigenvec, plink_eigenval):
     plt.xlabel('Number of Components (K)')
     plt.ylabel('Proportion of Explained Variance (%)')
     plt.title(f'Explained Variance by Components ({num_components} components)')
-    plt.show()
+    plt.savefig(out_dir+"/"+popid+"_explained_var.png")

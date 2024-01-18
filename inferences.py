@@ -86,7 +86,7 @@ def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     cmd2 = "".join([ "bash ", out_dir, popid, ".blueprint.sh"])
     os.system(cmd2)
 
-def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=1):
+def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     if len(contigs) == 0:
         print("Error! No contigs to use! Make sure the threshold matches your data.")
     deminfhelper_directory = os.path.dirname(os.path.abspath(__file__))
