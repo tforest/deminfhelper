@@ -28,6 +28,7 @@ dependencies:
   - gzip=1.13=hd590300_0
   - htslib=1.18=h81da01d_0
   - java-jre=8.45.14=0
+  - joblib=1.2.0=py311h06a4308_0
   - kiwisolver=1.4.4=py311h6a678d5_0
   - krb5=1.20.1=h143b758_1
   - lcms2=2.15=h7f713cb_2
@@ -76,6 +77,7 @@ dependencies:
   - pillow=10.0.1=py311h8aef010_1
   - pip=23.3=py311h06a4308_0
   - plink2=2.00a5=h4ac6f70_0
+  - plotly=5.9.0=py311h06a4308_0
   - psmc=0.6.5=h43eeafb_2
   - pyparsing=3.0.9=py311h06a4308_0
   - python=3.11.5=h955ad1f_0
@@ -84,11 +86,14 @@ dependencies:
   - python_abi=3.11=2_cp311
   - pytz=2023.3.post1=py311h06a4308_0
   - readline=8.2=h5eee18b_0
+  - scikit-learn=1.2.2=py311h6a678d5_1
   - scipy=1.11.4=py311h64a7726_0
   - seqtk=1.4=he4a0461_1
   - setuptools=68.0.0=py311h06a4308_0
   - six=1.16.0=pyhd3eb1b0_1
   - sqlite=3.41.2=h5eee18b_0
+  - tenacity=8.2.2=py311h06a4308_0
+  - threadpoolctl=2.2.0=pyh0d69192_0
   - tk=8.6.12=h1ccaba5_0
   - tqdm=4.65.0=py311h92b7b1e_0
   - tzdata=2023c=h04d1e81_0
