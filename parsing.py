@@ -22,22 +22,29 @@ import re
 from tqdm import tqdm  # Import tqdm for the progress bar
 
 
-def distrib_GQ(GQ_pop, line = [], pos_ind = None): #PL is a dict
-    samples = [line[i] for i in pos_ind]
-    gq_line = [i[4:] for i in samples] #we get the genotypes
-    gq_line = [i.split(",") for i in gq_line]
-    for sublist in gq_line:
-        gq2 = [int(i) for i in sublist]
-        gq2 = [i - np.min(gq2) for i in gq2]
-        gq2.remove(0)
-        min = np.min(gq2)
-        bin = min - int(str(min)[-1])
-        if bin in GQ_pop.keys():
-            GQ_pop[bin] = GQ_pop[bin]+1
-        else:
-            GQ_pop[bin] = 1
-    return(GQ_pop)
+def distrib_GQ(GQ_pop, line = [], pos_ind = None, bin_size = 10): #PL is a dict
+    format_field = line[8].split(":")  # Split the FORMAT field
+    
+    if "GQ" not in format_field:
+        raise ValueError("GQ field not found in FORMAT field")
 
+    gq_index = format_field.index("GQ")  # Find the position of GQ field in FORMAT
+
+    samples = [line[i] for i in pos_ind]  # Extract sample-specific information
+
+    gq_values = [sample.split(":")[gq_index] for sample in samples]  # Extract GQ values
+
+    for gq_value in gq_values:
+        gq_value = int(gq_value)  # Convert GQ value to integer
+        # Group GQ values into bins of specifed size (e.g. bin_size=10: 0-9, 10-19, etc.)
+        bin_value = gq_value - (gq_value % bin_size) 
+
+        if bin_value in GQ_pop:
+            GQ_pop[bin_value] += 1
+        else:
+            GQ_pop[bin_value] = 1
+
+    return GQ_pop
 
 def parse_config(config_file):
     param = {}
