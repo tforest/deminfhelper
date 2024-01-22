@@ -11,6 +11,10 @@ import pandas as pd
 import os
 import re
 from matplotlib.backends.backend_pdf import PdfPages
+import plotly.express as px
+from sklearn.cluster import KMeans
+from scipy.spatial import ConvexHull
+import plotly.graph_objects as go
 
 def plot_sfs(sfs, plot_title, output_file):
     plt.bar(np.arange(1, len(sfs)+1), sfs)
@@ -297,8 +301,8 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     plt.ylabel('Na')
     plt.savefig(out_dir+popid+"_all_plot.png")
     plt.close()
-
-def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir):
+    
+def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
     # Load eigenvectors and eigenvalues
     with open(plink_eigenvec) as input:
         for line in input:
@@ -313,8 +317,50 @@ def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir):
     # Determine the number of components
     num_components = eigenvectors.shape[1]
 
+    # Extract sample names from the eigenvec file
+    with open(plink_eigenvec) as input:
+        sample_names = [line.split()[1] for line in input if not line.startswith("#")]
+    
     # Calculate the percentage of variance explained by each PC
     variance_explained = (eigenvalues / np.sum(eigenvalues)) * 100
+
+    # Create a DataFrame for plotting
+    pca_df = pd.DataFrame({
+        'PC1': eigenvectors[:, 0],
+        'PC2': eigenvectors[:, 1],
+        'Sample': sample_names,
+    })
+
+    # Perform k-means clustering
+    print(f"Performing kmeans clustering with k={n_clusters} clusters...")
+    kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
+    pca_df['Cluster'] = kmeans.fit_predict(eigenvectors[:, :2])  # Using only the first two PCs for clustering
+
+    # Group the data by cluster
+    cluster_groups = pca_df.groupby('Cluster')
+
+    # Iterate over each cluster
+    print("Sorted by cluster:")
+    for cluster_id, cluster_data in cluster_groups:
+        print(f"Cluster {cluster_id}:")
+
+        # Iterate over each sample in the cluster
+        for sample, row in cluster_data.iterrows():
+            print(f"Sample: {row['Sample']}, Cluster: {row['Cluster']}")
+
+        print()  # Add an empty line to separate clusters
+
+    # Iterate over each sample
+    print("Sorted by sample:")
+    # Open a CSV file for writing
+    with open(f"{out_dir}/{popid}_k{n_clusters}_clusters.csv", 'w') as csv_file:
+        csv_file.write('Sample,Cluster\n')  # Write the header
+        # Iterate over each sample
+        for sample, row in pca_df.iterrows():
+            sample_name = row['Sample']
+            cluster = row['Cluster']
+            print(f"Sample: {sample_name}, Cluster: {cluster}")
+            csv_file.write(f'{sample_name},{cluster}\n')  # Write each sample and its cluster to the file
 
     # Plot the first two principal components
     plt.figure(figsize=(8, 6))
@@ -323,6 +369,39 @@ def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir):
     plt.xlabel(f'PC1 ({variance_explained[0]:.2f}%)')
     plt.ylabel(f'PC2 ({variance_explained[1]:.2f}%)')
     plt.savefig(out_dir+"/"+popid+"_PCA.png")
+
+    # Create a Plotly scatter plot with different symbols for each cluster
+    symbol_sequence = range(1,10)  # Define symbol sequence
+
+    # Map cluster number to symbol
+    pca_df['Symbol'] = pca_df['Cluster'].apply(lambda x: symbol_sequence[x % len(symbol_sequence)])
+
+    fig = px.scatter(pca_df, x='PC1', y='PC2', color='Cluster', symbol='Symbol',
+                    title=f'PCA with Clusters: PC1 vs PC2 ({num_components} components)',
+                    labels={'PC1': f'PC1 ({variance_explained[0]:.2f}%)', 'PC2': f'PC2 ({variance_explained[1]:.2f}%)'},
+                    template='plotly_white', text='Sample')  # Add 'text' parameter for sample names
+
+    # Add convex hulls
+    for i in range(n_clusters):
+        group = pca_df[pca_df['Cluster'] == i]
+        points = group[['PC1', 'PC2']].values
+
+        # Check if there are at least 3 points to form a convex hull
+        if len(points) > 2:
+            hull = ConvexHull(points)
+            for simplex in hull.simplices:
+                fig.add_trace(go.Scatter(x=points[simplex, 0], y=points[simplex, 1], mode='lines',
+                                         line=dict(color=px.colors.qualitative.Set1[i % len(px.colors.qualitative.Set1)]),
+                                         showlegend=False))
+        else:
+            print(f"Cluster {i} has fewer than 3 points; skipping convex hull.")
+
+    # Update the layout
+    fig.update_traces(marker=dict(size=10), selector=dict(type='scatter'))
+    fig.update_layout(coloraxis_showscale=False)
+    fig.update_layout(showlegend=False)
+    # Save the interactive HTML plot
+    fig.write_html(out_dir+"/"+popid+"_PCA_interactive.html")
 
     # Bar plot of explained variance
     plt.figure(figsize=(10, 6))
