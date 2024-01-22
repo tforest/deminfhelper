@@ -121,8 +121,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     kept_files = [f for f in os.listdir(out_dir) if os.path.isfile(os.path.join(out_dir, f)) and f.endswith("_msmc_input.txt") and os.path.getsize(os.path.join(out_dir, f)) > 0]
 
     if len(kept_files) == 0:
-        print("Error! There are no usable file for msmc2, all inputs are empty!")
-        exit(0)
+        raise ValueError("Error! There are no usable file for msmc2, all inputs are empty!")
 
     # Process each non-empty file
     for filename in kept_files:
@@ -244,10 +243,9 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
 def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
     POP = popid+":"+",".join(pop_ind)
     if len(contigs) == 0:
-        print("Error! No contigs to use! Make sure the threshold matches your data.")
         with open(out_dir+popid+"_model.final.json", 'w') as output:
             output.write("There was an error with SMC++. Please check the logs.")
-        exit(0)
+        raise ValueError("Error! No contigs to use! Make sure the threshold matches your data.")
 
     for contig in contigs:
         cmd1 = ["smc++", "vcf2smc", vcf, out_dir+popid+"_"+contig+".smc.gz", contig, POP]

@@ -52,6 +52,8 @@ def parse_config(config_file):
     #param["transformed"]=bool(param["transformed"])
     param["name_pop"] = param["name_pop"].split(",")
     param["npop"]=int(param["npop"])
+    if "n_clust_kmeans" in param:
+        param["n_clust_kmeans"] = int(param["n_clust_kmeans"])
     if "cpus" in param:
         param["cpus"]=int(param["cpus"])
     else:

@@ -303,6 +303,8 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid, summary_f
     plt.close()
     
 def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
+    if n_clusters is None:
+        raise ValueError("Error: Please set a number of clusters with --n_clust_kmeans.")
     # Load eigenvectors and eigenvalues
     with open(plink_eigenvec) as input:
         for line in input:

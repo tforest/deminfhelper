@@ -57,6 +57,8 @@ def parse_args():
     # Statistics
     # PCA
     parser.add_argument("--pca", help = "Compute PCA using Plink2", action = "store_true")
+    parser.add_argument("--plot_pca", help = "Compute PCA using Plink2", action = "store_true")
+    parser.add_argument("--n_clust_kmeans", help="Defines the number of k clusters for the k-means on the PCA",  type=int)
     # Config args; if no config file
     parser.add_argument("--popid", help="a population identifier; eg. species name",  type=str)
     parser.add_argument("--samples", help="a list of samples to use in the VCF. By default all samples are taken.", default="all", type=str)
@@ -77,33 +79,6 @@ def parse_args():
         parser.error("At least one of the optional arguments is missing: popid, samples, vcf, gentime, mu, out, L, n.\nMaybe you forgot to provide a config file?")
 
     return args
-
-def parse_yaml_file(file_path):
-    yaml_dict = {}
-    current_dict = yaml_dict
-    stack = []
-
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            if line.startswith("- "):
-                if type(current_dict) is not list:
-                    current_dict = []
-                    stack[-1][key] = current_dict
-                current_dict.append(line[2:])
-            else:
-                key, value = line.split(":", 1)
-                key = key.strip()
-                value = value.strip()
-                if value.startswith("[") and value.endswith("]"):
-                    value = value[1:-1].split(",")
-                    value = [item.strip() for item in value]
-                current_dict[key] = value
-
-    return yaml_dict
 
 def main():
     # parse args
@@ -145,13 +120,16 @@ def main():
             # default length of contig to keep, useful for SMC++
             'length_cutoff': 100000,
             'ref_genome': None,
+            'n_clust_kmeans': args.n_clust_kmeans,
             'cpus': 1
         }
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
             param["n_"+p] = len(param[p])
-
-
+    # Add args to the config for hybrid config + parameters set in args
+    for arg_name in vars(args):
+        arg_value = getattr(args, arg_name)
+        param[arg_name] = arg_value
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
@@ -223,13 +201,6 @@ def main():
                 # trailing carriage return
                 sfs_out.write("\n")
                 
-    if args.plot_sfs:
-        SFS_dict = {}
-        for p in param["name_pop"]:
-            sfs_list = parse_sfs(param["path_to_sfs"])
-            SFS_dict[param["name_pop"][0]] = sfs_list
-            plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
-
     if args.sfs_transformed:
         if args.sfs == False:
             SFS_dict = {}
@@ -278,22 +249,6 @@ def main():
                 plot_stairwayplot2(popid = p, summary_file = "".join([param["out_dir_stairwayplot2"], p, "/", p,".final.summary"]), \
                                out_dir = param["final_out_dir"])
 
-
-    if args.plot_stairwayplot2 and args.stairwayplot2==False:
-        if not os.path.exists(param["out_dir_stairwayplot2"]):
-            os.makedirs(param["out_dir_stairwayplot2"])
-        for p in param["name_pop"]:
-            if "".join(["summary_file_stw"]) not in param.keys():
-                print("path to the population final summary file missing")
-            else:
-                plot_stairwayplot2(popid = p, summary_file = param["summary_file_stw"], \
-                               out_dir = param["final_out_dir"])
-
-    if args.plot_msmc2:
-        for p in param["name_pop"]:
-            plot_msmc2(popid = p, summary_file = "".join([param["out_dir_msmc2"], "/", p, "_msmc2.final.txt"]), \
-                           mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"])
-
     # Run dadi
     if args.dadi:
         if not os.path.exists(param["out_dir_dadi"]):
@@ -301,8 +256,8 @@ def main():
         if args.sfs == False:
             for p in param["name_pop"]:
                 if "path_to_sfs" not in param.keys():
-                    print("--sfs flag or path_to_sfs missing")
-                    exit(0)
+                    raise ValueError("--sfs flag or path_to_sfs missing")
+
         for p in param["name_pop"]:
             run_dadi_cli(popid = p, out_dir = param["out_dir_dadi"],
                          sfs_path = param["out_dir_sfs"]+"SFS_"+p+".fs",
@@ -359,6 +314,36 @@ def main():
         for p in param["name_pop"]:
             psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                    out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
+    # Plot SFS
+    if args.plot_sfs:
+        SFS_dict = {}
+        for p in param["name_pop"]:
+            sfs_list = parse_sfs(param["path_to_sfs"])
+            SFS_dict[param["name_pop"][0]] = sfs_list
+            plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
+
+    # Plot PCA
+    if args.plot_pca:
+        for p in param["name_pop"]:
+            plot_pca(plink_eigenvec=param["out_dir_stats"]+"/plink/"+p+".pca.eigenvec",
+                     plink_eigenval=param["out_dir_stats"]+"/plink/"+p+".pca.eigenval",
+                     popid=p, out_dir=param["out_dir_stats"], n_clusters=param["n_clust_kmeans"])
+
+    # Plot StairwayPlot2
+    if args.plot_stairwayplot2 and args.stairwayplot2==False:
+        if not os.path.exists(param["out_dir_stairwayplot2"]):
+            os.makedirs(param["out_dir_stairwayplot2"])
+        for p in param["name_pop"]:
+            if "".join(["summary_file_stw"]) not in param.keys():
+                print("path to the population final summary file missing")
+            else:
+                plot_stairwayplot2(popid = p, summary_file = param["summary_file_stw"], \
+                               out_dir = param["final_out_dir"])
+    if args.plot_msmc2:
+        for p in param["name_pop"]:
+            plot_msmc2(popid = p, summary_file = "".join([param["out_dir_msmc2"], "/", p, "_msmc2.final.txt"]), \
+                           mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"])
+            
     ## Plot PSMC
     if args.plot_psmc:
         for p in param["name_pop"]:
@@ -367,7 +352,7 @@ def main():
                       plot_output_prefix = param["out_dir_psmc"]+"/"+p,
                       gen_time=param["gen_time"], mut_rate=param["mut_rate"],
                       out_dir = param["final_out_dir"])
-
+    # Plot SMC++
     if args.plot_smcpp:
         for p in param["name_pop"]:
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])
