@@ -379,7 +379,7 @@ def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
     pca_df['Symbol'] = pca_df['Cluster'].apply(lambda x: symbol_sequence[x % len(symbol_sequence)])
 
     fig = px.scatter(pca_df, x='PC1', y='PC2', color='Cluster', symbol='Symbol',
-                    title=f'PCA with Clusters: PC1 vs PC2 ({num_components} components)',
+                    title=f'PCA with k={n_clusters} Clusters: PC1 vs PC2 ({num_components} components)',
                     labels={'PC1': f'PC1 ({variance_explained[0]:.2f}%)', 'PC2': f'PC2 ({variance_explained[1]:.2f}%)'},
                     template='plotly_white', text='Sample')  # Add 'text' parameter for sample names
 

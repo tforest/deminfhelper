@@ -66,17 +66,18 @@ def parse_args():
     parser.add_argument("--gentime", help="the generation time of the species in years. Eg 1.5", type=float)
     parser.add_argument("--mu", help="the average mutation rate per site per generation")
     parser.add_argument("--out", help="Output path of the analysis. Will create a dir.",  type=str)
+    parser.add_argument("--out_dir_stats", help="Output path of the stats. Will create a dir.",  type=str)
     parser.add_argument("--L", help="The actual size of the genotyped sequence length that produced the VCF, before any filters.",  type=int)
     parser.add_argument("--n", help="Number of sequences that produced the VCF. Eg for 5 dipl individuals, n=10.",  type=int)
 
     args = parser.parse_args()
-    if args.sfs:
-        optional_args = [args.popid, args.vcf, args.out]
-    else:
-        optional_args = [args.popid, args.gentime, args.mu, args.out]
+    # if args.sfs:
+    #     optional_args = [args.popid, args.vcf, args.out]
+    # else:
+    #     optional_args = [args.popid, args.gentime, args.mu, args.out]
 
-    if not args.config_file and not all(optional_args):
-        parser.error("At least one of the optional arguments is missing: popid, samples, vcf, gentime, mu, out, L, n.\nMaybe you forgot to provide a config file?")
+    # if not args.config_file and not all(optional_args):
+    #     parser.error("At least one of the optional arguments is missing: popid, samples, vcf, gentime, mu, out, L, n.\nMaybe you forgot to provide a config file?")
 
     return args
 
@@ -129,7 +130,9 @@ def main():
     # Add args to the config for hybrid config + parameters set in args
     for arg_name in vars(args):
         arg_value = getattr(args, arg_name)
-        param[arg_name] = arg_value
+        if arg_name not in param:
+            # config value is kept over args
+            param[arg_name] = arg_value
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
