@@ -145,7 +145,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2.final.txt"])
 
     print(cmd5)
-    with open(popid+"_msmc2.log", 'w') as log:
+    with open(out_dir+"/"+popid+"_msmc2.log", 'w') as log:
         subprocess.run(cmd5, stdout=log, shell=True)
 
     # # Run MSMC2 combining information from all contigs
