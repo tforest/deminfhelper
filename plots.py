@@ -49,7 +49,19 @@ def plot_stairwayplot2(popid, summary_file, out_dir):
     plt.savefig(out_dir+popid+"_stw_plot.png")
     plt.close()
 
-def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
+def plot_straight_x_y(x,y):
+    x_1 = [x[0]]
+    y_1 = []
+    for i in range(0, len(y)-1):
+        x_1.append(x[i])
+        x_1.append(x[i])
+        y_1.append(y[i])
+        y_1.append(y[i])
+    y_1 = y_1+[y[-1],y[-1]]
+    x_1.append(x[-1])
+    return x_1, y_1
+
+def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True):
     #scaled_left_bound = np.array()
     mu = float(mu)
     gen_time = float(gen_time)
@@ -62,12 +74,18 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
     # Pop Size
     scaled_pop = 1/df['lambda']
     pop_size_change = scaled_pop / (2*mu)
+    scaled_left_bound, pop_size_change = plot_straight_x_y(list(scaled_left_bound), list(pop_size_change))
     plt.plot(scaled_left_bound, pop_size_change,color="blue")
-    plt.title(popid)
+    plt.title(f"[MSMC2] {popid}")
     plt.xlabel('Time (in years)')
     plt.ylabel('Ne')
+    if xlog:
+        plt.xscale('log')
+    if ylog:
+        plt.yscale('log')
     plt.savefig(out_dir+popid+"_msmc2_plot.png")
     plt.close()
+    return scaled_left_bound, pop_size_change
 
 def plot_psmc(popid, sample_names, psmc_output_file,
               plot_output_prefix, gen_time, mut_rate,

@@ -142,7 +142,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
         else:
             print(f"{filename} has only non-positive lines and is now empty.")
 
-    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2"])
+    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2.final.txt"])
 
     print(cmd5)
     with open(popid+"_msmc2.log", 'w') as log:

@@ -128,11 +128,11 @@ def main():
             param[p] = param[p].split(",")
             param["n_"+p] = len(param[p])
     # Add args to the config for hybrid config + parameters set in args
-    for arg_name in vars(args):
-        arg_value = getattr(args, arg_name)
-        if arg_name not in param:
-            # config value is kept over args
-            param[arg_name] = arg_value
+#    for arg_name in vars(args):
+#        arg_value = getattr(args, arg_name)
+#        if arg_name not in param:
+#            # config value is kept over args
+#            param[arg_name] = arg_value
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
