@@ -125,24 +125,38 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
 
     # Process each non-empty file
     for filename in kept_files:
-        lines_to_keep = []
-        with open(os.path.join(out_dir, filename), 'r') as file:
-            for line in file:
-                columns = line.strip().split('\t')
-                if len(columns) >= 3 and int(columns[2]) > 0:
-                    lines_to_keep.append(line)
-
-        # Write back to the file with non-positive lines removed
-        with open(os.path.join(out_dir, filename), 'w') as file:
-            file.writelines(lines_to_keep)
-
+        with open(os.path.join(out_dir, filename), 'r') as input_file, open(os.path.join(out_dir, filename + "_temp"), 'w') as output_file:
+            for line in input_file:
+                # Check if matches the pattern checked by msmc2
+                pattern = r"^[A-Za-z0-9_.]+\s\d+\s\d+\s[ACTG01\?,]+$"
+                replace_pattern = r"[^A-Za-z0-9_.\sACTG01\?,]"
+                # count nb of diff. alleles 
+                nb_polyall = len(set(line.strip().split("\t")[-1]))
+                if nb_polyall == 1 or nb_polyall > 2 :
+                    # skip polyallelic sites
+                    continue
+                if len(line.strip().split("\t")[-1]) > 2:
+                    # in MSMC format, the 4th col represents all the alleles of the different samples
+                    # as we work sample per sample and chr per chr, we fix this at 2, otherwise, possible inconsistency will make things crash
+                    continue
+                if not re.match(pattern, line):
+                    # Replace hyphens with underscores in the first field
+                    if "*" in line:
+                        line = line.replace("*", "")
+                    line = re.sub(replace_pattern, "_", line)
+                    output_file.write(line)
+                else:
+                    # if line is correct write it as is
+                    output_file.write(line)
+         
+        # Replace the original file with the corrected one
+        os.replace(os.path.join(out_dir, filename + "_temp"), os.path.join(out_dir, filename))
+        
         # Print information or run MSMC2 if needed
-        if lines_to_keep:
-            print(f"Processed {filename} - Non-positive lines removed.")
-        else:
-            print(f"{filename} has only non-positive lines and is now empty.")
+        print(f"Processed {filename}.")
 
-    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2.final.txt"])
+
+    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2"])
 
     print(cmd5)
     with open(out_dir+"/"+popid+"_msmc2.log", 'w') as log:
@@ -240,22 +254,60 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
         p=subprocess.Popen(cmd3,stdout=log, shell=True)
     p.wait()
 
-def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
-    POP = popid+":"+",".join(pop_ind)
+# def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time):
+#     POP = popid+":"+",".join(pop_ind)
+#     if len(contigs) == 0:
+#         with open(out_dir+popid+"_model.final.json", 'w') as output:
+#             output.write("There was an error with SMC++. Please check the logs.")
+#         raise ValueError("Error! No contigs to use! Make sure the threshold matches your data.")
+
+#     for contig in contigs:
+#         cmd1 = ["smc++", "vcf2smc", vcf, out_dir+popid+"_"+contig+".smc.gz", contig, POP]
+#         print("LOG", out_dir+popid+"_"+contig+"_vcf2smc.log")
+#         with open(out_dir+popid+"_"+contig+"_vcf2smc.log", 'w') as log:
+#             p=subprocess.Popen(cmd1,stdout=log)
+#     p.wait()
+#     cmd2 = "".join(["smc++ estimate -o ", out_dir, popid, " --base ", popid, " ", mu, " ", out_dir, popid, "_*.smc.gz"])
+#     output2 = subprocess.check_output([cmd2], shell=True)
+#     output2 = output2.decode(encoding="utf-8")
+#     print(output2)
+#     cmd3 = "".join(["smc++ plot ", out_dir, popid, "_inference.png ", out_dir, "/", popid, "_model.final.json -g ", str(gen_time)," -c "])
+#     os.system(cmd3)
+
+# New smcpp with parallelization
+
+def run_vcf2smc(contig, args):
+    vcf, out_dir, popid, pop_ind = args
+    cmd1 = ["smc++", "vcf2smc", vcf, out_dir + popid + "_" + contig + ".smc.gz", contig, popid + ":" + ",".join(pop_ind)]
+    log_file = out_dir + popid + "_" + contig + "_vcf2smc.log"
+    with open(log_file, 'w') as log:
+        subprocess.run(cmd1, stdout=log)
+
+def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     if len(contigs) == 0:
-        with open(out_dir+popid+"_model.final.json", 'w') as output:
+        with open(out_dir + popid + "_model.final.json", 'w') as output:
             output.write("There was an error with SMC++. Please check the logs.")
         raise ValueError("Error! No contigs to use! Make sure the threshold matches your data.")
 
-    for contig in contigs:
-        cmd1 = ["smc++", "vcf2smc", vcf, out_dir+popid+"_"+contig+".smc.gz", contig, POP]
-        print("LOG", out_dir+popid+"_"+contig+"_vcf2smc.log")
-        with open(out_dir+popid+"_"+contig+"_vcf2smc.log", 'w') as log:
-            p=subprocess.Popen(cmd1,stdout=log)
-    p.wait()
-    cmd2 = "".join(["smc++ estimate -o ", out_dir, popid, "_model.final.json ", mu, " ", out_dir, popid, "_*.smc.gz"])
-    output2 = subprocess.check_output([cmd2], shell=True)
+    # Get the number of CPUs to use
+    if num_cpus is None:
+        num_cpus = multiprocessing.cpu_count()
+
+    # Parallel processing of contigs
+    pool_args = (vcf, out_dir, popid, pop_ind)
+    with multiprocessing.Pool(num_cpus) as pool:
+        pool.starmap(run_vcf2smc, [(contig, pool_args) for contig in contigs])
+
+    # Once all contig processing is done, proceed with the next steps
+    kept_files = [f for f in os.listdir(out_dir) if os.path.isfile(os.path.join(out_dir, f)) and f.endswith(".smc.gz") and os.path.getsize(os.path.join(out_dir, f)) > 0]
+    cmd2 = ["smc++", "estimate", "-o", out_dir, "--base", popid, mu] + [os.path.join(out_dir, f) for f in kept_files]
+    print(cmd2)
+    output2 = subprocess.check_output(cmd2)
     output2 = output2.decode(encoding="utf-8")
     print(output2)
-    cmd3 = "".join(["smc++ plot ", out_dir, popid, "_inference.png ", out_dir, popid, "_model.final.json/model.final.json -g", str(gen_time)," -c "])
-    os.system(cmd3)
+
+    cmd3 = ["smc++", "plot", out_dir + popid + "_inference.png", out_dir + "/" + popid + ".final.json", "-g", str(gen_time), "-c"]
+    subprocess.run(cmd3)
+
+
+

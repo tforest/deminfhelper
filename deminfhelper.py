@@ -31,6 +31,7 @@ def parse_args():
     #mandatory arguments
     parser.add_argument("--config_file", help="path to the configuration file")
     #optional arguments
+    parser.add_argument("--cpus", help="# CPU threads to use",  type=int)
     #SFS
     parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
     parser.add_argument("--sfs_transformed", help = "to normalize the sfs", action = "store_true")
@@ -127,6 +128,8 @@ def main():
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
             param["n_"+p] = len(param[p])
+    
+    param["cpus"] = args.cpus
     # Add args to the config for hybrid config + parameters set in args
 #    for arg_name in vars(args):
 #        arg_value = getattr(args, arg_name)
@@ -299,7 +302,8 @@ def main():
             os.makedirs(param["out_dir_smcpp"])
         for p in param["name_pop"]:
             smcpp(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                   out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], gen_time = param["gen_time"])
+                  out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], 
+                  gen_time = param["gen_time"], num_cpus=param["cpus"])
     ##MSMC2
     if args.msmc2:
         contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"])
@@ -307,7 +311,7 @@ def main():
             os.makedirs(param["out_dir_msmc2"])
         for p in param["name_pop"]:
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"],
+                  out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"],
                   num_cpus=param["cpus"])
     ##PSMC
     if args.psmc:
@@ -316,7 +320,7 @@ def main():
             os.makedirs(param["out_dir_psmc"])
         for p in param["name_pop"]:
             psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                   out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
+                 out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
     # Plot SFS
     if args.plot_sfs:
         SFS_dict = {}
