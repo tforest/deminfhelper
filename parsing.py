@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-parsing() : parses the vcd, compute the sfs if SFS=True, output the msmc input file
-if MSMC=False
+
 """
 
 import gzip
 import os
 import numpy as np
-# from inferences import *
 
 if __package__ is None or __package__ == '':
     import inferences
@@ -47,6 +45,17 @@ def distrib_GQ(GQ_pop, line = [], pos_ind = None, bin_size = 10): #PL is a dict
     return GQ_pop
 
 def parse_config(config_file):
+    """
+    Update the configuration file with the values from the given config_dict.
+    Preserve in-place comment lines and add new entries at the end.
+
+    Parameters:
+    - config_dict (dict): The dictionary containing the updated configuration values.
+    - config_file (str): The path to the configuration file.
+
+    Returns:
+    - None
+    """
     param = {}
     with open(config_file, "rt") as config:
         line=config.readline()
