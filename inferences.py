@@ -60,13 +60,13 @@ def run_dadi_cli(popid, out_dir, sfs_path, optimizations=None,
                  p0 = [1, 1, 10, 5],
                  lower_bounds = [0.1, 0.1, 0.1, 0.1],
                  upper_bounds = [50, 5, 30, 10]):
-   """
+    """
     Executes dadi-cli for demographic model inference using SFS.
-
+    
     This function runs dadi-cli commands to infer demographic models and
     determine the best fit with the three_epoch model. It allows specifying
     initial parameters, bounds, and optimization steps.
-
+    
     Parameters:
     - popid (str): Identifier for the population or sample.
     - out_dir (str): Output directory path for results.
