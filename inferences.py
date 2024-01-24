@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-inferences.py - Population Demographic Inference Script
+inferences.py - Population Demographic Inference Module of DemInfHelper.
 
 This script facilitates demographic inference for populations using various tools and methods.
 It provides functions to perform demographic analyses, including estimation of population size histories

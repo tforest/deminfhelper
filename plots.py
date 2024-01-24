@@ -1,7 +1,45 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+plots.py - Module of DemInfHelper for generating various plots and visualizations as part of the demography inference workflow.
+
+This module provides functions for generating plots and visualizations related to population genetics, demographic inference,
+and data analysis. It includes functions for Principal Component Analysis (PCA), Dadi model parameter estimation plots,
+genotype quality distribution plots, and more.
+
+Functions:
+    - plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
+        Perform PCA on genetic data and generate plots, including PCA scatter plots and explained variance bar plots.
+    
+    - plot_dadi_output_three_epochs(dadi_vals_list, name_pop, out_dir, mu, L, gen_time,
+                                   xlim=None, ylim=None, max_v=-10**6, nb_plots_max=10, title="Dadi pop. estimates"):
+        Generate plots from Dadi model parameter estimates for three epochs, including parameter value distributions and trajectories.
+    
+    - plot_psmc(popid, sample_names, psmc_output_file, plot_output_prefix, gen_time, mut_rate, out_dir, x=0):
+        Generate PSMC (Pairwise Sequentially Markovian Coalescent) plots based on PSMC output files.
+    
+    - plot_msmc2(popid, summary_file, mu, gen_time, out_dir):
+        Generate MSMC (Multiple Sequentially Markovian Coalescent) plots based on MSMC2 summary files.
+    
+    - plot_stairwayplot2(popid, summary_file, out_dir):
+        Generate stairway plot-style demographic history plots based on summary files.
+
+    - plot_smcpp(popid, summary_file, out_dir):
+        Generate plots of effective population size (Ne) over time based on smc++ summary files.
+    
+    - plot_distrib_gq(popid, gq, out_dir_gq):
+        Generate Genotyping Quality (GQ) distribution plots based on GQ values from VCF files.
+
+    - plot_sfs(sfs, plot_title, output_file):
+        Generate Site Frequency Spectrum (SFS) plots based on SFS data.
+
+    - plot_dadi_output_three_epochs(dadi_vals_list, name_pop, out_dir, mu, L, gen_time,
+                                   xlim=None, ylim=None, max_v=-10**6, nb_plots_max=10, title="Dadi pop. estimates"):
+        Generate plots from Dadi model parameter estimates for three epochs, including parameter value distributions and trajectories.
+
+Each function is designed to provide visualization capabilities for different aspects of the demography inference workflow.
 """
+
 
 import numpy as np
 import matplotlib.pyplot as plt

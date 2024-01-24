@@ -1,6 +1,62 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+DemInfHelper v0.1.
+
+Authors:
+Thomas Forest (thomas.forest1@edu.mnhn.fr)
+Swan Portalier
+Camille Steux
+
+
+DemInfHelper is a versatile command-line tool for performing population genetics analysis, including the computation of the Site Frequency Spectrum (SFS) and various demographic inference methods. It is designed to facilitate the analysis of genetic data, helping researchers understand the demographic history of populations.
+
+Usage:
+1. Install the required modules and dependencies.
+2. Run DemInfHelper with various command-line arguments to perform specific tasks.
+
+## Key Features:
+- Compute the SFS from a VCF (Variant Call Format) file.
+- Transform and normalize the SFS.
+- Perform demographic inference using methods like StairwayPlot2, dadi, MSMC2, PSMC, and SMC++.
+- Plot demographic inferences and SFS distributions.
+- Analyze genotype quality (GQ) distributions.
+- Conduct Principal Component Analysis (PCA) on genetic data.
+
+## Command-Line Arguments:
+- `--config_file`: Path to the configuration file (optional).
+- `--cpus`: Number of CPU threads to use (optional).
+- `--sfs`: Compute the SFS from the VCF file.
+- `--sfs_transformed`: Normalize and transform the SFS.
+- `--plot_sfs`: Plot the SFS.
+- `--stairwayplot2`: Run StairwayPlot2 for demographic inference.
+- `--plot_stairwayplot2`: Plot StairwayPlot2 results.
+- `--dadi`: Run demographic inference using dadi.
+- `--plot_dadi`: Create population size plots from dadi output.
+- `--msmc2`: Run MSMC2 for demographic inference.
+- `--plot_msmc2`: Plot MSMC2 results.
+- `--psmc`: Run PSMC for demographic inference.
+- `--plot_psmc`: Plot PSMC inference results.
+- `--gq_distrib`: Compute the Genotype Quality (GQ) distribution.
+- `--smcpp`: Run SMC++ for demographic inference.
+- `--plot_smcpp`: Plot SMC++ results.
+- `--Gplot`: Plot all inferences on the same graph.
+- `--folded`: Fold the SFS (default: True).
+- `--pca`: Compute Principal Component Analysis (PCA).
+- `--plot_pca`: Plot PCA results.
+- `--n_clust_kmeans`: Number of clusters for k-means in PCA.
+- Additional configuration parameters.
+
+## Usage:
+- Run DemInfHelper with appropriate arguments to perform desired analysis tasks :
+
+python3 DemInfHelper/deminfhelper.py --config_file config.txt --sfs
+python3 DemInfHelper/deminfhelper.py --config_file config.txt --pca --n_clust_kmeans 3
+python3 DemInfHelper/deminfhelper.py --config_file config.txt --stairwayplot2
+python3 DemInfHelper/deminfhelper.py --config_file config.txt --plot_stairwayplot2
+
+## Directory Structure:
+- The tool creates directories for output and results.
 
 """
 
@@ -369,7 +425,6 @@ def main():
     if args.Gplot:
         for p in param["name_pop"]:
             Gplot(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",gen_time=param["gen_time"],dadi_vals_list=dadi_output_parse(param["out_dir_dadi"]+"output_"+p+".dadi"),out_dir=param["out_dir"], title =p,name_pop=p,popid = p, summary_file2 = param["plot_file_smcpp"],summary_file = param["summary_file_stw"])
-
 
 
 if __name__ == "__main__":
