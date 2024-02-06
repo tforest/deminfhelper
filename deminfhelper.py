@@ -162,7 +162,7 @@ def main():
             'path_to_stairwayplot2': program_path+'/bin/stairway_plot_es/',
             'blueprint_template': program_path+'/bin/template.blueprint',
             'out_dir_stairwayplot2': args.out+'/output_stairwayplot2/',
-            'summary_file_stw': args.out+'/output_stairwayplot2/hirrus/hirrus.final.summary',
+            'summary_file_stw': args.out+'/output_stairwayplot2/'+args.popid+'/'+args.popid+'.final.summary',
             'L': args.L,
             # Dadi params
             'lower_bound': '1, 1, 0.05, 0.01',
@@ -171,7 +171,7 @@ def main():
             'optimizations': '100',
             'out_dir_dadi': args.out+'/output_dadi/',
             'out_dir_smcpp': args.out+'/output_smcpp/',
-            'plot_file_smcpp': args.out+'/output_smcpp/hirrus_inference.csv',
+            'plot_file_smcpp': args.out+'/output_smcpp/'+args.popid+'_inference.csv',
             'out_dir_gq_distrib': args.out+'/output_stats/',
             'out_dir_stats': args.out+'/output_stats/',
             'final_out_dir': args.out+'/inferences/',
@@ -270,19 +270,18 @@ def main():
                 if "path_to_sfs" not in param.keys():
                     print("--sfs flag or path_to_sfs missing")
                 else:
-                    with open(param["path_to_sfs"], "rt") as sfs:
-                        line=sfs.readline()
-                        while line != "":
-                            SFS_dict[p] = [int(i) for i in line[:-1].split(",")]
-                            line = sfs.readline()
-        SFS_dict_trans = {}
-        for p in param["name_pop"]:
-            SFS_dict_trans[p] = transform_sfs(sfs = SFS_dict[p], n = param["n_"+p], \
-                    folded = param["folded"])
-            with open(param["out_dir_sfs"]+"SFS_"+p+"_transformed.txt", 'w') as sfs_out:
-                sfs_out.write(",".join(map(str, SFS_dict_trans[p])))
+                    for p in param["name_pop"]:
+                        sfs_list = parse_sfs(param["path_to_sfs"])
+                        SFS_dict[param["name_pop"][0]] = sfs_list
+        # SFS_dict_trans = {}
+        # for p in param["name_pop"]:
+        #     SFS_dict_trans[p] = transform_sfs(sfs = SFS_dict[p], n = param["n_"+p], \
+        #             folded = param["folded"])
+        #     with open(param["out_dir_sfs"]+"SFS_"+p+"_transformed.txt", 'w') as sfs_out:
+        #         sfs_out.write(",".join(map(str, SFS_dict_trans[p])))
             if args.plot_sfs:
-                plot_sfs(sfs = SFS_dict_trans[p], plot_title = "SFS (transformed) "+p, output_file = param["out_dir_sfs"]+p+"_trans.png")
+                #plot_sfs(sfs = SFS_dict_trans[p], plot_title = "SFS (transformed) "+p, output_file = param["out_dir_sfs"]+p+"_trans.png")
+                barplot_sfs(sfs = SFS_dict[p], output_file = param["out_dir_sfs"]+"SFS_"+p+"_transformed.png", title = "SFS "+p, transformed = True )
 
     # Run Stairwayplot2
     if args.stairwayplot2:
@@ -383,7 +382,9 @@ def main():
         for p in param["name_pop"]:
             sfs_list = parse_sfs(param["path_to_sfs"])
             SFS_dict[param["name_pop"][0]] = sfs_list
-            plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
+            #plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
+            barplot_sfs(sfs = SFS_dict[p], output_file = param["out_dir_sfs"]+"SFS_"+p+".png", title = "SFS "+p, transformed = False )
+
 
     # Plot PCA
     if args.plot_pca:
