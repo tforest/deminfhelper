@@ -230,7 +230,8 @@ def parse_sfs(sfs_file):
             # Read the spectrum data
             spectrum_data = list(map(int, file.readline().strip().split()))
             # Check if the number of bins in the spectrum matches the expected number
-            if len(spectrum_data) != num_individuals:
+            if len(spectrum_data) != num_individuals-1:
+                print("Len SFS=", len(spectrum_data), "Nb indiv. = ", num_individuals)
                 raise ValueError("Error: Number of bins in the spectrum doesn't match the expected number of individuals.")
             # Read the mask data
             mask_data = list(map(int, file.readline().strip().split()))
