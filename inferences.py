@@ -289,7 +289,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=
     with open(out_dir+"/"+popid+"_msmc2.log", 'w') as log:
         subprocess.run(cmd5, stdout=log, shell=True)           
 
-def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+22*2+4+6", num_cpus=4):
+def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=4):
     """
     Executes the PSMC analysis for population size history inference.
 
@@ -323,6 +323,18 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
     Note:
     - Requires bcftools, seqtk, gzip, and PSMC to be installed and accessible.
     """
+
+    if kwargs == None:
+        raise ValueError("You need to define kwargs for PSMC! Use --psmc_kwargs or define it in the config file.")
+
+    cmd1 = " ".join(["bcftools view --regions ", '\n'.join(contigs.keys()), "-I", vcf, " | bgzip -c > ", out_dir+"/psmc_input.vcf.gz"])
+    print(f"Creating PSMC VCF input file... \n{cmd1}")
+    os.system(cmd1)
+    
+    tabix_cmd = "tabix "+out_dir+"/psmc_input.vcf.gz"
+    print(f"Indexing VCF using {tabix_cmd}...")
+    os.system(tabix_cmd)
+        
     # Get the available CPUs
     available_cpus = list(range(multiprocessing.cpu_count()))
     # Choose the first 'num_cpus' CPUs
@@ -384,12 +396,12 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, p="10+
 
     processes = []
     for sample in pop_ind:
-        cmd2 = " ".join(["bcftools consensus -I", vcf, "-s", sample, "-f", ref_genome, "|",
+        cmd2 = " ".join(["bcftools consensus -I", out_dir+"/psmc_input.vcf.gz", "-s", sample, "-f", ref_genome, " - |",
         # read from stdin
         "seqtk seq -F '#'", "-", "|",
         "bgzip >", out_dir+"consensus_"+sample+".fq.gz", ";",
         "fq2psmcfa -q1", out_dir+"consensus_"+sample+".fq.gz", ">", out_dir+sample+"_diploid.psmcfa", ";"
-        "psmc -N30 -t15 -r5 -p '"+p+"' -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa"])
+        "psmc -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa", " ".join(kwargs.split(";"))])
         print(cmd2)
         with open(out_dir+sample+"_consensus.log", 'w') as log:
             process = subprocess.Popen(cmd2, shell=True, stdout=log)

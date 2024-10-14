@@ -101,10 +101,12 @@ def parse_args():
     #MSMC2
     parser.add_argument("--msmc2", help = "to run msmc2", action = "store_true")
     parser.add_argument("--plot_msmc2", help = "to plot msmc2", action = "store_true")
-    parser.add_argument("--msmc2_kwargs", help="Optional args for MSMC2 (list separated by ';', eg. --msmc2_kwarg -i 25; -p 1*2+25*1+1*2+1*3 and so on.",  type=str)
+    parser.add_argument("--msmc2_kwargs", help="Optional args for MSMC2 (list separated by ';', eg. --msmc2_kwarg -i 25; -p 1*2+25*1+1*2+1*3 and so on).",  type=str)
     #PSMC
     parser.add_argument("--psmc", help = "to run PSMC", action = "store_true")
     parser.add_argument("--plot_psmc", help = "to plot psmc inference", action = "store_true")
+    parser.add_argument("--psmc_kwargs", help="PSMC params (list separated by ';', eg. --psmc_kwarg -p 10+22*2+4+6; -N30; -t15; -r5  and so on)",  type=str)
+
     #PL distribution
     parser.add_argument("--gq_distrib", help = "to compute the GQ (genotype quality) distribution", action = "store_true")
     #SMCPP
@@ -184,7 +186,8 @@ def main():
             'n_clust_kmeans': args.n_clust_kmeans,
             'cpus': 1,
             'contig_filter': args.contig_filter,
-            'msmc2_kwargs' : args.msmc2_kwargs
+            'msmc2_kwargs' : args.msmc2_kwargs,
+            'psmc_kwargs' : args.psmc_kwargs
         }
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
@@ -380,7 +383,7 @@ def main():
             os.makedirs(param["out_dir_psmc"])
         for p in param["name_pop"]:
             psmc(ref_genome = param["ref_genome"], contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
-                 out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"])
+                 out_dir = param["out_dir_psmc"], mu = param["mut_rate"], gen_time = param["gen_time"], kwargs = param["psmc_kwargs"])
     # Plot SFS
     if args.plot_sfs:
         SFS_dict = {}
