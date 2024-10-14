@@ -126,6 +126,7 @@ def parse_args():
     parser.add_argument("--out_dir_stats", help="Output path of the stats. Will create a dir.",  type=str)
     parser.add_argument("--L", help="The actual size of the genotyped sequence length that produced the VCF, before any filters.",  type=int)
     parser.add_argument("--n", help="Number of sequences that produced the VCF. Eg for 5 dipl individuals, n=10.",  type=int)
+    parser.add_argument("--contig_filter", help="Keep only contigs satisfiying that regular expression.",  type=str)
 
     args = parser.parse_args()
     # if args.sfs:
@@ -179,7 +180,8 @@ def main():
             'length_cutoff': 100000,
             'ref_genome': None,
             'n_clust_kmeans': args.n_clust_kmeans,
-            'cpus': 1
+            'cpus': 1,
+            'contig_filter': args.contig_filter
         }
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
@@ -352,7 +354,7 @@ def main():
                          out_dir = param["out_dir_stats"])
     ##SMC++
     if args.smcpp:
-        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff=param["length_cutoff"])
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff=param["length_cutoff"], contig_regex=param["contig_filter"])
         if not os.path.exists(param["out_dir_smcpp"]):
             os.makedirs(param["out_dir_smcpp"])
         for p in param["name_pop"]:
@@ -361,7 +363,7 @@ def main():
                   gen_time = param["gen_time"], num_cpus=param["cpus"])
     ##MSMC2
     if args.msmc2:
-        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"])
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"],  contig_regex=param["contig_filter"])
         if not os.path.exists(param["out_dir_msmc2"]):
             os.makedirs(param["out_dir_msmc2"])
         for p in param["name_pop"]:
@@ -370,7 +372,7 @@ def main():
                   num_cpus=param["cpus"])
     ##PSMC
     if args.psmc:
-        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"])
+        contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"],  contig_regex=param["contig_filter"])
         if not os.path.exists(param["out_dir_psmc"]):
             os.makedirs(param["out_dir_psmc"])
         for p in param["name_pop"]:

@@ -251,7 +251,7 @@ def parse_sfs(sfs_file):
     # final return of SFS as a list
     return masked_spectrum
 
-def get_contigs_lengths(vcf, length_cutoff=100000, only_names = False):
+def get_contigs_lengths(vcf, length_cutoff=100000, only_names=False, contig_regex=None):
     """
     Parse contig lengths from a VCF file header and return a dictionary of contig names and lengths.
 
@@ -308,6 +308,10 @@ def get_contigs_lengths(vcf, length_cutoff=100000, only_names = False):
     if only_names:
         return list(contigs.keys())
     print("Finished getting contig sizes.")
+    if contig_regex:
+        contig_regex = re.compile(contig_regex)
+        print(f"Keeping only contigs with regex: {contig_regex}")
+        contigs = {contig_name: contig_size for contig_name, contig_size in contigs.items() if re.match(contig_regex, contig_name)}
     return contigs
 
 def dadi_output_parse(dadi_output_file):
