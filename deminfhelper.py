@@ -101,6 +101,7 @@ def parse_args():
     #MSMC2
     parser.add_argument("--msmc2", help = "to run msmc2", action = "store_true")
     parser.add_argument("--plot_msmc2", help = "to plot msmc2", action = "store_true")
+    parser.add_argument("--msmc2_kwargs", help="Optional args for MSMC2 (list separated by ';', eg. --msmc2_kwarg -i 25; -p 1*2+25*1+1*2+1*3 and so on.",  type=str)
     #PSMC
     parser.add_argument("--psmc", help = "to run PSMC", action = "store_true")
     parser.add_argument("--plot_psmc", help = "to plot psmc inference", action = "store_true")
@@ -127,6 +128,7 @@ def parse_args():
     parser.add_argument("--L", help="The actual size of the genotyped sequence length that produced the VCF, before any filters.",  type=int)
     parser.add_argument("--n", help="Number of sequences that produced the VCF. Eg for 5 dipl individuals, n=10.",  type=int)
     parser.add_argument("--contig_filter", help="Keep only contigs satisfiying that regular expression.",  type=str)
+    
 
     args = parser.parse_args()
     # if args.sfs:
@@ -181,7 +183,8 @@ def main():
             'ref_genome': None,
             'n_clust_kmeans': args.n_clust_kmeans,
             'cpus': 1,
-            'contig_filter': args.contig_filter
+            'contig_filter': args.contig_filter,
+            'msmc2_kwargs' : args.msmc2_kwargs
         }
         for p in param["name_pop"]:
             param[p] = param[p].split(",")
@@ -369,7 +372,7 @@ def main():
         for p in param["name_pop"]:
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"],
-                  num_cpus=param["cpus"])
+                  kwargs = param["msmc2_kwargs"], num_cpus=param["cpus"])
     ##PSMC
     if args.psmc:
         contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"],  contig_regex=param["contig_filter"])

@@ -197,7 +197,7 @@ def run_msmc2_process(args):
                     ">", out_dir+contig+"_"+individual+"_msmc_input.txt"])
     subprocess.run(cmd, shell=True, check=True)
     
-def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
+def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=None):
     """
     Runs MSMC2 analysis on given contigs with specified parameters.
 
@@ -260,12 +260,13 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
                     # in MSMC format, the 4th col represents all the alleles of the different samples
                     # as we work sample per sample and chr per chr, we fix this at 2, otherwise, possible inconsistency will make things crash
                     continue
+                # Dots in contig name cause crashes.
+                line = line.replace(".", "_")
                 if not re.match(pattern, line):
                     # Replace hyphens with underscores in the first field
                     if "*" in line:
                         line = line.replace("*", "")
                     line = re.sub(replace_pattern, "_", line)
-                    output_file.write(line)
                 else:
                     # if line is correct write it as is
                     output_file.write(line)
@@ -281,7 +282,9 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     if len(kept_files) == 0:
         raise ValueError("Error! There are no usable file for msmc2, all inputs are empty!")
 
-    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]), "-o", out_dir+popid+"_msmc2"])
+    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]),
+                     "-o", out_dir+popid+"_msmc2",
+                     " ".join(kwargs.split(";"))])
     print(cmd5)
     with open(out_dir+"/"+popid+"_msmc2.log", 'w') as log:
         subprocess.run(cmd5, stdout=log, shell=True)           
