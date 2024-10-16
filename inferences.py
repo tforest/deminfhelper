@@ -282,9 +282,16 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=
     if len(kept_files) == 0:
         raise ValueError("Error! There are no usable file for msmc2, all inputs are empty!")
 
-    cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]),
-                     "-o", out_dir+popid+"_msmc2",
-                     " ".join(kwargs.split(";"))])
+    # Write kept_files to a text file
+    args_file = os.path.join(out_dir, 'kept_files.txt')
+    with open(args_file, 'w') as out_file:
+        for filename in kept_files:
+            out_file.write(os.path.join(out_dir, filename) + '\n')
+
+    # cmd5 = " ".join(["msmc2_Linux", ' '.join([os.path.join(out_dir, f) for f in kept_files]),
+    #                  "-o", out_dir+popid+"_msmc2",
+    #                  " ".join(kwargs.split(";"))])
+    cmd5 = f"cat {args_file} | xargs msmc2_Linux -o {out_dir}{popid}_msmc2 " + kwargs
     print(cmd5)
     with open(out_dir+"/"+popid+"_msmc2.log", 'w') as log:
         subprocess.run(cmd5, stdout=log, shell=True)           
