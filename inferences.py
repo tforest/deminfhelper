@@ -334,7 +334,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
     if kwargs == None:
         raise ValueError("You need to define kwargs for PSMC! Use --psmc_kwargs or define it in the config file.")
 
-    cmd1 = " ".join(["bcftools view --regions ", '\n'.join(contigs.keys()), "-I", vcf, " | bgzip -c > ", out_dir+"/psmc_input.vcf.gz"])
+    cmd1 = " ".join(["bcftools view --regions ", ','.join(contigs.keys()), "-I", vcf, " | bgzip -c > ", out_dir+"/psmc_input.vcf.gz"])
     print(f"Creating PSMC VCF input file... \n{cmd1}")
     os.system(cmd1)
     
