@@ -401,7 +401,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
         "seqtk seq -F '#'", "-", "|",
         "bgzip >", out_dir+"consensus_"+sample+".fq.gz", ";",
         "fq2psmcfa -q1", out_dir+"consensus_"+sample+".fq.gz", ">", out_dir+sample+"_diploid.psmcfa", ";"
-        "psmc -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa", " ".join(kwargs.split(";"))])
+        "psmc ", kwargs, " -o", out_dir+sample+".psmc", out_dir+sample+"_diploid.psmcfa"])
         print(cmd2)
         with open(out_dir+sample+"_consensus.log", 'w') as log:
             process = subprocess.Popen(cmd2, shell=True, stdout=log)
