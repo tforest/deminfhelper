@@ -314,17 +314,16 @@ def plot_distrib_gq(popid, gq, out_dir_gq):
     Returns:
         None: The function generates the GQ distribution plot but does not return any values.
     """
-    quality_field = gq[1]
-    gq = gq[0]
+
     gq = OrderedDict(sorted(gq.items()))
     names = list(gq.keys())
     values = list(gq.values())
     plt.figure(figsize = [10, 5])
     plt.bar(range(len(gq)), values, tick_label=names)
-    plt.title(f"{popid} {quality_field} distribution")
-    plt.xlabel(quality_field)
+    plt.title(f"{popid} GQ distribution")
+    plt.xlabel("GQ")
     plt.ylabel('Numbre of sites')
-    plt.savefig(f"{out_dir_gq}/{popid}_{quality_field}_distrib.png")
+    plt.savefig(f"{out_dir_gq}/{popid}_GQ_distrib.png")
     plt.close()
 
 def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, filter_prefix=None, nb_bins=None):
