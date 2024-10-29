@@ -397,10 +397,26 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
                 line = vcf_file.readline()
                 pbar.update(1)
             pbar.close()
-
+    else:
+        # if there's a ref genome, filter and keep only the contigs selected by user (using regex)
+        with open(ref_genome, "r") as ref_file:
+            with open(out_dir+"/psmc_input_genome.fa", "w") as ref_filtered:
+                    keep_sequence = False
+                    for line in ref_file:
+                        # Check if the line is a header (starts with ">")
+                        if line.startswith(">"):
+                            # Check if the header contains any of the contigs
+                            if  any(contig in line for contig in contigs):
+                                keep_sequence = True
+                                ref_filtered.write(line)  # Write the header
+                            else:
+                                keep_sequence = False
+                        elif keep_sequence:
+                            # Write sequence lines only if the current sequence should be kept
+                            ref_filtered.write(line)
     processes = []
     for sample in pop_ind:
-        cmd2 = " ".join(["bcftools consensus -I", out_dir+"/psmc_input.vcf.gz", "-s", sample, "-f", ref_genome, " - |",
+        cmd2 = " ".join(["bcftools consensus -I", out_dir+"/psmc_input.vcf.gz", "-s", sample, "-f", out_dir+"/psmc_input_genome.fa", " - |",
         # read from stdin
         "seqtk seq -F '#'", "-", "|",
         "bgzip >", out_dir+"consensus_"+sample+".fq.gz", ";",
