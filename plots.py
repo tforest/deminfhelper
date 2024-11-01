@@ -256,7 +256,7 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True)
 
 def plot_psmc(popid, sample_names, psmc_output_file,
               plot_output_prefix, gen_time, mut_rate,
-              out_dir, x=0):
+              out_dir, kwargs):
     """
     Generate a PSMC plot from PSMC output.
 
@@ -284,7 +284,7 @@ def plot_psmc(popid, sample_names, psmc_output_file,
     """
     # x: minimum generations, 0 for auto [10000]
     # R: DO not remove temporary files
-    cmd = " ".join(["psmc_plot.pl -g", str(gen_time), "-x", str(x),
+    cmd = " ".join(["psmc_plot.pl -g", str(gen_time), str(kwargs),
                     "-u", str(mut_rate), "-R", plot_output_prefix, psmc_output_file])
     os.system(cmd)
     print(cmd)

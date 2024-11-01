@@ -93,7 +93,7 @@ def distrib_GQ(GQ_pop, line = [], pos_ind = None, bin_size = 10): #PL is a dict
 
     return GQ_pop
 
-def parse_config(config_file):
+def parse_config(config_file, args=None):
     """
     Parse a configuration file and return the configuration parameters as a dictionary.
 
@@ -102,6 +102,7 @@ def parse_config(config_file):
 
     Parameters:
     - config_file (str): The path to the configuration file.
+    - args (dict): The dictionnary of command line arguments. 
 
     Returns:
     - param (dict): A dictionary containing configuration parameters and values.
@@ -141,6 +142,15 @@ def parse_config(config_file):
         param["ref_genome"] = None
     if 'length_cutoff' not in param.keys():
         param["length_cutoff"] = length_cutoff
+        
+    # # if command line arguments are parsed
+    # if args:
+    #     # Iterate over the arguments, as they override config file
+    #     for arg in vars(args):
+    #         value = getattr(args, arg)
+    #         if value is not None:
+    #             param[arg] = value
+
     return param
 
 def update_config(config_dict, config_file):
