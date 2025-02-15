@@ -200,8 +200,14 @@ def main():
             'plot_psmc_kwargs' : args.plot_psmc_kwargs
         }
         for p in param["name_pop"]:
-            param[p] = param[p].split(",")
+            if p in list(param.keys()):
+                param[p] = param[p].split(",")
+            else:
+                # if the pop is not defined in the config, the same list
+                # of all samples from the VCF are used for every pop
+                param[p] = get_sample_names(vcf=param["vcf"])
             param["n_"+p] = len(param[p])
+                            
     
     # Add args to the config for hybrid config + parameters set in args
     # for arg_name in vars(args):

@@ -127,8 +127,14 @@ def parse_config(config_file, args=None):
         param["cpus"]=int(param["cpus"])
     else:
         param["cpus"]=None
+        
     for p in param["name_pop"]:
-        param[p] = [item.strip() for item in param[p].split(",")]
+        if p in list(param.keys()):
+            param[p] = [item.strip() for item in param[p].split(",")]
+        else:
+            # if the pop is not defined in the config, the same list
+            # of all samples from the VCF are used for every pop
+            param[p] = get_sample_names(vcf=param["vcf"])
         param["n_"+p] = len(param[p])
 
 
@@ -281,8 +287,8 @@ def get_contigs_lengths(vcf, length_cutoff=100000, only_names=False, contig_rege
     contigs = {}
     print(f"Parsing {vcf} to get contigs sizes.")
     # Parsing VCF in gzip format
-    with gzip.open(vcf, 'rt') as vcf:
-        line = vcf.readline()
+    with gzip.open(vcf, 'rt') as vcf_stream:
+        line = vcf_stream.readline()
         while line != "":
             if line[0:8] == "##contig":
                 contig_length = int(re.split('[=,]', line)[-1][:-2])
@@ -291,38 +297,54 @@ def get_contigs_lengths(vcf, length_cutoff=100000, only_names=False, contig_rege
                 if contig_length >= length_cutoff:
                     contigs[contig_name] = contig_length
             elif line.startswith("#"):
-                line = vcf.readline()
+                line = vcf_stream.readline()
                 continue
             else:
                 break
-            line = vcf.readline()
+            line = vcf_stream.readline()
     #If not ##contig in the comments, need to estimate parsing all the file
     if len(contigs)==0:
         print("Warning: No ##contig info in VCF header. Need to parse the whole file...")
         pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar
         contigs_dict = {}
-        with gzip.open(vcf, 'rt') as vcf:
-            line = vcf.readline()
+        with gzip.open(vcf, 'rt') as vcf_stream:
+            line = vcf_stream.readline()
             while line != "":
                 if line.startswith("#"):
+                    line = vcf_stream.readline()
                     continue
                 else:
                     line = line.split()
                     pos = line[1]
                     chrm = line[0]
-                    conitgs[chrm] = pos
+                    contigs[chrm] = pos
                 # at the end, change line
                 pbar.update(1)
-                line = vcf.readline()
+                line = vcf_stream.readline()
         pbar.close()
-    if only_names:
-        return list(contigs.keys())
     print("Finished getting contig sizes.")
     if contig_regex:
         contig_regex = re.compile(contig_regex)
         print(f"Keeping only contigs with regex: {contig_regex}")
         contigs = {contig_name: contig_size for contig_name, contig_size in contigs.items() if re.match(contig_regex, contig_name)}
+    print(f"Contigs={contigs}")
+    if only_names:
+        return list(contigs.keys())
     return contigs
+
+def get_sample_names(vcf):
+    """Get samples list from the VCF header
+    """
+    print(f"Parsing {vcf} to get samples list.")
+    # Parsing VCF in gzip format
+    with gzip.open(vcf, 'rt') as vcf:
+        line = vcf.readline()
+        while line != "":
+            if line[0:6] == "#CHROM":
+                samples = list(line.split())[9:]
+                break
+            line = vcf.readline()
+    return samples
 
 def dadi_output_parse(dadi_output_file):
     """
