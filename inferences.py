@@ -331,6 +331,10 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
     if kwargs == None:
         raise ValueError("You need to define kwargs for PSMC! Use --psmc_kwargs or define it in the config file.")
 
+    tabix_input = "tabix "+vcf
+    print(f"Indexing VCF using {tabix_input}...")
+    os.system(tabix_input)
+        
     cmd1 = " ".join(["bcftools view --regions ", ','.join(contigs.keys()), "-I", vcf, " | bgzip -c > ", out_dir+"/psmc_input.vcf.gz"])
     print(f"Creating PSMC VCF input file... \n{cmd1}")
     os.system(cmd1)
@@ -349,8 +353,8 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
         ## will create a fake ref genome for bcftools consensus
         print("Warning: No Reference genome provided. A fake ref genome is being generated for bcftools consensus.")
         
-        ref_genome = out_dir+popid+".fa"
-
+        #ref_genome = out_dir+popid+".fa"
+        ref_genome = out_dir+"/psmc_input_genome.fa"
         # Initialize variables
         current_chrom = None
         current_pos = 0
