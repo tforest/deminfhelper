@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DemInfHelper v0.1.
+DemInfHelper v0.1.1
 
 Authors:
 Thomas Forest (thomas.forest1@edu.mnhn.fr)
