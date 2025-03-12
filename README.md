@@ -147,6 +147,7 @@ optional arguments:
   --config_file CONFIG_FILE
                         path to the configuration file
   --cpus CPUS           number of CPU threads to use
+  --mask MASK           Keep only regions specified in a given BED file.
   --sfs                 to compute the sfs
   --sfs_transformed     to normalize the sfs
   --plot_sfs            to plot the sfs
