@@ -183,8 +183,11 @@ def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     os.system(cmd2)
 
 def run_msmc2_process(args):
-    contig, individual, vcf, out_dir, deminfhelper_directory = args
+    contig, individual, vcf, out_dir, deminfhelper_directory, mask = args
     individual_vcf = f"{out_dir}{contig}_{individual}.vcf.gz"
+    optionnal_kwargs = ""
+    if mask:
+        optionnal_kwargs+=f"--mask={mask}"
     # construct and execute the command as in the original function
     cmd = " ".join(["bcftools view -s", individual, "-t", contig, vcf,
                     "| bcftools query - -f '%INFO/DP\n' | awk '{ sum += $1 } END { print sum/NR }' |",
@@ -192,11 +195,12 @@ def run_msmc2_process(args):
                     "bcftools view -g ^miss -t", contig, "-s", individual, vcf,
                     "| vcftools --vcf - --minDP $minDP --maxDP $maxDP --recode --stdout | gzip -c >",
                     individual_vcf, ";",
-                    "python3", deminfhelper_directory+"/scripts/generate_multihetsep.py", individual_vcf,
+                    "python3", deminfhelper_directory+"/scripts/generate_multihetsep.py",
+                    optionnal_kwargs, individual_vcf,
                     ">", out_dir+contig+"_"+individual+"_msmc_input.txt"])
     subprocess.run(cmd, shell=True, check=True)
     
-def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=None):
+def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, mask, num_cpus=None):
     """
     Runs MSMC2 analysis on given contigs with specified parameters.
 
@@ -233,7 +237,7 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, num_cpus=
     pool_args = []
     for contig in contigs:
         for individual in pop_ind:
-            pool_args.append((contig, individual, vcf, out_dir, deminfhelper_directory))
+            pool_args.append((contig, individual, vcf, out_dir, deminfhelper_directory, mask))
 
     with multiprocessing.Pool(num_cpus) as pool:
         pool.map(run_msmc2_process, pool_args)
@@ -466,13 +470,19 @@ def run_vcf2smc(contig, args):
     Note:
     - Requires SMC++ to be installed and accessible.
     """
-    vcf, out_dir, popid, pop_ind = args
-    cmd1 = ["smc++", "vcf2smc", vcf, out_dir + popid + "_" + contig + ".smc.gz", contig, popid + ":" + ",".join(pop_ind)]
+    vcf, out_dir, popid, pop_ind, mask = args
+    optionnal_kwargs = []
+    if mask:
+        optionnal_kwargs += ["--mask" , mask]
+    cmd1 = ["smc++", "vcf2smc"]
+    if len(optionnal_kwargs)!=0:
+        cmd1+=optionnal_kwargs
+    cmd1 += [vcf, out_dir + popid + "_" + contig + ".smc.gz", contig, popid + ":" + ",".join(pop_ind)]
     log_file = out_dir + popid + "_" + contig + "_vcf2smc.log"
     with open(log_file, 'w') as log:
         subprocess.run(cmd1, stdout=log)
 
-def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
+def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, mask, num_cpus=None):
     """
     Perform demographic inference using SMC++ on multiple contigs of a population's VCF data.
 
@@ -492,7 +502,7 @@ def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
 
     Outputs:
     - SMC++ output files and plots in the specified output directory.
-    """
+    """   
     if len(contigs) == 0:
         with open(out_dir + popid + "_model.final.json", 'w') as output:
             output.write("There was an error with SMC++. Please check the logs.")
@@ -501,9 +511,18 @@ def smcpp(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, num_cpus=None):
     # Get the number of CPUs to use
     if num_cpus is None:
         num_cpus = multiprocessing.cpu_count()
-
+    # If mask, make sure the BED is indexed with tabix
+    if mask:
+        # check if the tabix index is present
+        if not os.path.exists(f"{mask}.tbi"):
+            # check if mask is compressed
+            if not mask[-3:] == ".gz":
+                os.system(f"bgzip -k {mask}")
+                # now use compressed mask
+                mask = mask+".gz"
+            os.system(f"tabix {mask}")
     # Parallel processing of contigs
-    pool_args = (vcf, out_dir, popid, pop_ind)
+    pool_args = (vcf, out_dir, popid, pop_ind, mask)
     with multiprocessing.Pool(num_cpus) as pool:
         pool.starmap(run_vcf2smc, [(contig, pool_args) for contig in contigs])
 

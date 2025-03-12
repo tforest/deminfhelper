@@ -88,6 +88,8 @@ def parse_args():
     parser.add_argument("--config_file", help="path to the configuration file")
     #optional arguments
     parser.add_argument("--cpus", help="# CPU threads to use",  type=int, default=1)
+    # mask
+    parser.add_argument("--mask", help="Keep only regions specified in a given BED file.", type=str)
     #SFS
     parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
     parser.add_argument("--sfs_transformed", help = "to normalize the sfs", action = "store_true")
@@ -197,7 +199,8 @@ def main():
             'contig_filter': args.contig_filter,
             'msmc2_kwargs' : args.msmc2_kwargs,
             'psmc_kwargs' : args.psmc_kwargs,
-            'plot_psmc_kwargs' : args.plot_psmc_kwargs
+            'plot_psmc_kwargs' : args.plot_psmc_kwargs,
+            'mask' : args.mask
         }
         for p in param["name_pop"]:
             if p in list(param.keys()):
@@ -226,7 +229,7 @@ def main():
 
     # Compute the SFS
     if args.sfs or args.gq_distrib:
-        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib)
+        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib, mask=args.mask)
         if not param['L']:
             # Needed estimated number of sequence genotyped.
             # from GADMA
@@ -382,7 +385,7 @@ def main():
         for p in param["name_pop"]:
             smcpp(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                   out_dir = param["out_dir_smcpp"], mu = param["mut_rate"], 
-                  gen_time = param["gen_time"], num_cpus=param["cpus"])
+                  gen_time = param["gen_time"], num_cpus=param["cpus"], mask=param["mask"])
     ##MSMC2
     if args.msmc2:
         contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"],  contig_regex=param["contig_filter"])
@@ -391,7 +394,7 @@ def main():
         for p in param["name_pop"]:
             msmc2(contigs = contigs, popid = p, pop_ind = param[p], vcf = param["vcf"], \
                   out_dir = param["out_dir_msmc2"], mu = param["mut_rate"], gen_time = param["gen_time"],
-                  kwargs = param["msmc2_kwargs"], num_cpus=param["cpus"])
+                  kwargs = param["msmc2_kwargs"], num_cpus=param["cpus"], mask=param["mask"])
     ##PSMC
     if args.psmc:
         contigs = get_contigs_lengths(vcf = param["vcf"], length_cutoff = param["length_cutoff"],  contig_regex=param["contig_filter"])
@@ -406,7 +409,6 @@ def main():
         for p in param["name_pop"]:
             sfs_list = parse_sfs(param["path_to_sfs"])
             SFS_dict[param["name_pop"][0]] = sfs_list
-            #plot_sfs(sfs = SFS_dict[p], plot_title = "SFS "+p, output_file = param["out_dir_sfs"]+"SFS_"+p+".png")
             barplot_sfs(sfs = SFS_dict[p], output_file = param["out_dir_sfs"]+"SFS_"+p+".png", title = "SFS "+p, transformed = False )
 
 

@@ -35,6 +35,7 @@ Each function in this module is designed to assist in parsing and processing gen
 
 import gzip
 import os
+from matplotlib.pyplot import stem
 import numpy as np
 
 if __package__ is None or __package__ == '':
@@ -127,7 +128,11 @@ def parse_config(config_file, args=None):
         param["cpus"]=int(param["cpus"])
     else:
         param["cpus"]=None
-        
+    if "mask" not in param:
+        if not args.mask:
+            param["mask"]=None
+        else:
+            param["mask"]=args.mask
     for p in param["name_pop"]:
         if p in list(param.keys()):
             param[p] = [item.strip() for item in param[p].split(",")]
@@ -435,8 +440,44 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
     # Generate plot
     plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval", popid = popid, out_dir = out_dir)
 
+def parse_bed(bed_file):
+    mask = {}
+    with open(bed_file, "r") as bed_stream:
+        for line in bed_stream:
+            contig, start, end = line.split()[0:3]
+            if contig not in mask.keys():
+                mask[contig] = [int(start), int(end)]
+            else:
+                mask[contig] += [int(start), int(end)]
+    return mask
+
+# def pos_in_mask(mask, target_pos, chrm):
+#     if mask is None:
+#         return True
+#     for k, pos in enumerate(mask[chrm][:-1]):
+#         if target_pos >= pos and target_pos <= mask[chrm][k+1]:
+#             return True
+#     return False
+
+def pos_in_mask(kept_pos, target_pos):
+    if kept_pos is None:
+        return True
+    if target_pos not in kept_pos:
+        return False
+    return True
+
+def kept_pos(mask, chrm):
+    """Given a chromosome, will return a list of all the kept positions in the mask
+    """
+    kept_pos = []
+    if chrm not in mask.keys():
+        return kept_pos
+    for k, pos in enumerate(mask[chrm][:-1:2]):
+        kept_pos+=list(range(pos, mask[chrm][k+1]))
+    return kept_pos
+
 # Function using dynamic distance evaluation with rolling positions
-def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
+def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None):
     """
     Parse VCF lines, calculate SNP distances, and generate Site Frequency Spectra (SFS) and GQ distributions.
 
@@ -475,6 +516,9 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
     All_snp_count = 0
     Kept_snp_count = 0
     snp_dist_list = []
+    if mask:
+        print(f"Omitting variants not present in {mask}.")
+        mask = parse_bed(mask)
     # we initialize a sfs for each population
     for p in PARAM["name_pop"]:
         SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True))
@@ -510,7 +554,13 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                 # reset the tab, otherwise distances are going to be false
                 tab = [1] * tab_size
                 snp_nb = 0
-            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
+                if mask:
+                    pos_kept = kept_pos(mask, chrm)
+                else:
+                    pos_kept = None
+            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and \
+               "," not in line.split("\t")[4] and \
+               pos_in_mask(pos_kept, pos):
                 snp_nb += 1
                 split_line = line.split("\t")
                 for p in PARAM["name_pop"]:
@@ -555,7 +605,13 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False):
                 # reset the tab, otherwise distances are going to be false
                 tab = [1] * tab_size
                 snp_nb = 0
-            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and "," not in line.split("\t")[4]:    #we only keep the bi-allelique sites
+                if mask:
+                    pos_kept = kept_pos(mask, chrm)
+                else:
+                    pos_kept = None
+            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and \
+               "," not in line.split("\t")[4] and \
+               pos_in_mask(pos_kept, pos):
                 snp_nb += 1
                 split_line = line.split("\t")
                 for p in PARAM["name_pop"]:
