@@ -129,10 +129,11 @@ def parse_config(config_file, args=None):
     else:
         param["cpus"]=None
     if "mask" not in param:
-        if not args.mask:
-            param["mask"]=None
+        if args:
+            if args.mask != None:
+                param["mask"]=args.mask
         else:
-            param["mask"]=args.mask
+            param["mask"]=None
     for p in param["name_pop"]:
         if p in list(param.keys()):
             param[p] = [item.strip() for item in param[p].split(",")]
