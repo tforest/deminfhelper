@@ -132,6 +132,8 @@ def parse_config(config_file, args=None):
         if args:
             if args.mask != None:
                 param["mask"]=args.mask
+            else:
+                param["mask"]=None
         else:
             param["mask"]=None
     for p in param["name_pop"]:

@@ -229,7 +229,7 @@ def main():
 
     # Compute the SFS
     if args.sfs or args.gq_distrib:
-        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib, mask=args.mask)
+        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib, mask=param["mask"])
         if not param['L']:
             # Needed estimated number of sequence genotyped.
             # from GADMA
