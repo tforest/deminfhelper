@@ -451,14 +451,6 @@ def parse_bed(bed_file):
                 mask[contig] += [int(start), int(end)]
     return mask
 
-# def pos_in_mask(mask, target_pos, chrm):
-#     if mask is None:
-#         return True
-#     for k, pos in enumerate(mask[chrm][:-1]):
-#         if target_pos >= pos and target_pos <= mask[chrm][k+1]:
-#             return True
-#     return False
-
 def pos_in_mask(kept_pos, target_pos):
     if kept_pos is None:
         return True
