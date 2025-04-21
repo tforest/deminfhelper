@@ -210,15 +210,14 @@ def main():
                 # of all samples from the VCF are used for every pop
                 param[p] = get_sample_names(vcf=param["vcf"])
             param["n_"+p] = len(param[p])
-                            
-    
-    # Add args to the config for hybrid config + parameters set in args
-    # for arg_name in vars(args):
-    #    arg_value = getattr(args, arg_name)
-    #    if arg_name not in param:
-    #        # config value is kept over args
-    #        param[arg_name] = arg_value
-           
+
+    # loop over command line args
+    for arg_name in vars(args):
+       arg_value = getattr(args, arg_name)
+       if arg_name in param and arg_value is not None:
+           # command args value overwrite params in config file
+           param[arg_name] = arg_value
+
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
