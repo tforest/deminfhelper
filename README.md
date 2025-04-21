@@ -195,31 +195,31 @@ optional arguments:
 5. **Example use:**
 - Compute the SFS
      ```bash
-     deminfhelper.py --config cfg.yml --sfs
+     deminfhelper.py --config_file cfg.yml --sfs
      ```
 - Plot the SFS
      ```bash
-     deminfhelper.py --config cfg.yml --plot_sfs
+     deminfhelper.py --config_file cfg.yml --plot_sfs
      ```
 - Plot the Genotype Quality (GQ) distribution
      ```bash
-     deminfhelper.py --config cfg.yml --gq_distrib
+     deminfhelper.py --config_file cfg.yml --gq_distrib
      ```
 - Run inference(s)
      ```bash
-     deminfhelper.py --config cfg.yml --stairwayplot2
-     deminfhelper.py --config cfg.yml --dadi
-     deminfhelper.py --config cfg.yml --smcpp
-     deminfhelper.py --config cfg.yml --msmc2 --cpus 8
-     deminfhelper.py --config cfg.yml --psmc --cpus 8
+     deminfhelper.py --config_file cfg.yml --stairwayplot2
+     deminfhelper.py --config_file cfg.yml --dadi
+     deminfhelper.py --config_file cfg.yml --smcpp
+     deminfhelper.py --config_file cfg.yml --msmc2 --cpus 8
+     deminfhelper.py --config_file cfg.yml --psmc --cpus 8
      ```
  - Plot the inference(s)
       ```bash
-     deminfhelper.py --config cfg.yml --plot_stairwayplot2
-     deminfhelper.py --config cfg.yml --plot_dadi
-     deminfhelper.py --config cfg.yml --plot_smcpp
-     deminfhelper.py --config cfg.yml --plot_msmc2 --cpus 8
-     deminfhelper.py --config cfg.yml --plot_psmc --cpus 8
+     deminfhelper.py --config_file cfg.yml --plot_stairwayplot2
+     deminfhelper.py --config_file cfg.yml --plot_dadi
+     deminfhelper.py --config_file cfg.yml --plot_smcpp
+     deminfhelper.py --config_file cfg.yml --plot_msmc2 --cpus 8
+     deminfhelper.py --config_file cfg.yml --plot_psmc --cpus 8
      ```
 
 
