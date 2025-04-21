@@ -570,6 +570,7 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None)
     keeping_threshold = np.percentile(snp_dist_list, percentile)
     print(f"SFS parsing: Done. Filtering variants keeping only variants with a distance that is lower than : {keeping_threshold} ({percentile}' percentile)")
     snps_distance_by_chr = {}
+    current_chrm = None
     pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar    
     with gzip.open(PARAM["vcf"],  mode='rt') as vcf:
         line = vcf.readline()    
