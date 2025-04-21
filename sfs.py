@@ -46,7 +46,7 @@ def build_sfs(n, folded, sfs_ini, line=[], sfs=[], pos_ind = None):
             count=min(sum(gen), 2*n-sum(gen)) #if folded, we count the minor allele
         else:
             count=sum(gen) #if not folded, we count the alternate allele (1)
-        # warning! SFS[0] are monomorphic sites, as well as SFS[len(gen)] is SFS is unfoled
+        # warning! SFS[0] are monomorphic sites, as well as SFS[len(gen)] if SFS is unfoled
         # if count != 0 and (folded) or (not folded and count != 2*n) # these are monomorphic sites
         sfs[count] += 1 #the sfs is incremented
         return(sfs)
