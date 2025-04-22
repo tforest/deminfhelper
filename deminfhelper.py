@@ -260,15 +260,15 @@ def main():
                 # for later use. 
                 folded_string = "folded"
                 # Warning! n_bins*2 only for diploids
-                n_bins = len(SFS_dict[p]) * 2
+                n_bins = len(SFS_dict[p]) * 2 - 1
             else:
                 folded_string = "unfolded"
-                n_bins = len(SFS_dict[p])
+                n_bins = len(SFS_dict[p]) - 1
             with open(param["out_dir_sfs"]+"SFS_"+p+".fs", 'w') as sfs_out:
                 sfs_out.write(str(n_bins)+" "+folded_string+" "+'"'+p+'"\n')
                 sfs_out.write(" ".join(map(str, SFS_dict[p])))
                 if param["folded"]:
-                    sfs_out.write(" 0"*len(SFS_dict[p])+"\n")
+                    sfs_out.write(" 0"*(n_bins - len(SFS_dict[p]))+"\n")
                 else:
                     # add the trailing carriage return
                     sfs_out.write("\n")
@@ -280,7 +280,8 @@ def main():
                     elif (param["folded"] == False and sfs_bin == len(SFS_dict[p])):
                         # Mask if it the last bin of the SFS and unfolded sfs
                         sfs_out.write("1 ")
-                    elif param["folded"] == True and sfs_bin > (n_bins / 2)-1:
+                    # for folded ; take care of odd number of sfs bins
+                    elif param["folded"] == True and sfs_bin >= ((n_bins // 2) + (n_bins%2)):
                         # Mask all sites that are null in the SFS for folded spectra
                         sfs_out.write("1 ")
                     else:

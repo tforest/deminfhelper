@@ -249,22 +249,22 @@ def parse_sfs(sfs_file):
     try:
         with open(sfs_file, 'r') as file:
             # Read the first line which contains information about the file
-            num_individuals, mode, species_name = file.readline().strip().split()
-            num_individuals = int(num_individuals)
+            num_bins, mode, species_name = file.readline().strip().split()
+            num_bins = int(num_bins)
             # Read the spectrum data
             spectrum_data = list(map(int, file.readline().strip().split()))
             # Check if the number of bins in the spectrum matches the expected number
-            if len(spectrum_data) != num_individuals:
-                print("Len SFS=", len(spectrum_data), "Nb indiv. = ", num_individuals)
-                raise ValueError("Error: Number of bins in the spectrum doesn't match the expected number of individuals.")
+            if len(spectrum_data) != num_bins:
+                print("Len SFS=", len(spectrum_data), "Nb SFS bins. = ", num_bins)
+                raise ValueError("Error: Number of bins in the spectrum doesn't match the specified number of bins (nb of haplotypes + 1).")
             # Read the mask data
             mask_data = list(map(int, file.readline().strip().split()))
 
             # Check if the size of the mask matches the number of bins in the spectrum
-            if len(mask_data) != num_individuals:
+            if len(mask_data) != num_bins:
                 raise ValueError("Error: Size of the mask doesn't match the number of bins in the spectrum.")
             # Apply the mask to the spectrum
-            masked_spectrum = [spectrum_data[i] for i in range(num_individuals) if not mask_data[i]]
+            masked_spectrum = [spectrum_data[i] for i in range(num_bins) if not mask_data[i]]
     # Error handling
     except FileNotFoundError:
         print(f"Error: File not found - {sfs_file}")
