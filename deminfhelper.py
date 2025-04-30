@@ -29,6 +29,7 @@ Usage:
 - `--sfs`: Compute the SFS from the VCF file.
 - `--sfs_transformed`: Normalize and transform the SFS.
 - `--plot_sfs`: Plot the SFS.
+- `--percentile_cutoff`: Percentile of SNPs distance below which SNPs are kept. (default: 90)
 - `--stairwayplot2`: Run StairwayPlot2 for demographic inference.
 - `--plot_stairwayplot2`: Plot StairwayPlot2 results.
 - `--dadi`: Run demographic inference using dadi.
@@ -94,6 +95,7 @@ def parse_args():
     parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
     parser.add_argument("--sfs_transformed", help = "to normalize the sfs", action = "store_true")
     parser.add_argument("--plot_sfs", help = "to plot the sfs", action = "store_true")
+    parser.add_argument("--percentile_cutoff", help="Percentile of SNPs distance below which SNPs are kept.",  type=int, default=90)
     #Stairwayplot2
     parser.add_argument("--stairwayplot2", help = "to run stairwayplot2", action = "store_true")
     parser.add_argument("--plot_stairwayplot2", help = "to run stairwayplot2", action = "store_true")
@@ -159,7 +161,7 @@ def main():
     args = parse_args()
 
     ## CONFIG FILE
-    if args.popid is None:
+    if args.config_file is not None:
         param = parse_config(args.config_file, args)
     else:
         program_path = "/".join(os.path.abspath(__file__).split("/")[:-1])+"/"
@@ -175,6 +177,7 @@ def main():
             'mut_rate': args.mu,
             'out_dir_sfs': args.out+'/output_sfs/',
             'path_to_sfs': args.out+'/output_sfs/SFS_'+args.popid+'.fs',
+            'percentile_cutoff': args.percentile_cutoff,
             'path_to_stairwayplot2': program_path+'/bin/stairway_plot_es/',
             'blueprint_template': program_path+'/bin/template.blueprint',
             'out_dir_stairwayplot2': args.out+'/output_stairwayplot2/',
@@ -214,7 +217,7 @@ def main():
     # loop over command line args
     for arg_name in vars(args):
        arg_value = getattr(args, arg_name)
-       if arg_name in param and arg_value is not None:
+       if arg_name in param.keys() and arg_value is not None:
            # command args value overwrite params in config file
            param[arg_name] = arg_value
 
@@ -228,7 +231,8 @@ def main():
 
     # Compute the SFS
     if args.sfs or args.gq_distrib:
-        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib, mask=param["mask"])
+        res_pars = vcf_line_parsing(PARAM = param, SFS = args.sfs, SMCPP = args.smcpp, GQ = args.gq_distrib, mask=param["mask"],
+                                    percentile_cutoff=param["percentile_cutoff"])
         if not param['L']:
             # Needed estimated number of sequence genotyped.
             # from GADMA
@@ -244,7 +248,7 @@ def main():
             param["L_computed"] = res_pars[2]
             print("Adding L_computed=",  param["L_computed"], "to", args.config_file)
             update_config(config_dict = param, 
-                          config_file = args.config_file)
+                          config_file = args.config_file, args=args)
     if args.sfs:
         if not os.path.exists(param["out_dir_sfs"]):
             # create the sfs output directory if it does not exists

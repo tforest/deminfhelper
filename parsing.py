@@ -128,6 +128,8 @@ def parse_config(config_file, args=None):
         param["cpus"]=int(param["cpus"])
     else:
         param["cpus"]=None
+    if "percentile_cutoff" not in param:
+        param["percentile_cutoff"] = args.percentile_cutoff
     if "mask" not in param:
         if args:
             if args.mask != None:
@@ -167,7 +169,7 @@ def parse_config(config_file, args=None):
 
     return param
 
-def update_config(config_dict, config_file):
+def update_config(config_dict, config_file, args):
     """
     Update a configuration file with values from a dictionary and preserve in-place comments.
 
@@ -188,7 +190,7 @@ def update_config(config_dict, config_file):
     with open(config_file, 'r') as file:
         lines = file.readlines()
 
-    initial_dict = {key.lower(): key for key in parse_config(config_file)} 
+    initial_dict = {key.lower(): key for key in parse_config(config_file, args=args)}
 
     # Create a mapping of lowercase keys to original keys
     key_mapping = {key.lower(): key for key in config_dict}
@@ -472,7 +474,7 @@ def kept_pos(mask, chrm):
     return kept_pos
 
 # Function using dynamic distance evaluation with rolling positions
-def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None):
+def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None, percentile_cutoff = 90):
     """
     Parse VCF lines, calculate SNP distances, and generate Site Frequency Spectra (SFS) and GQ distributions.
 
@@ -503,7 +505,6 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None)
     # total size of all contigs used
     Nseq = sum(list(contigs.values()))
     tab_size = 4
-    percentile = 90
     SFS_dict = {}
     GQ_dict = {}
     cols_in_vcf = {}
@@ -567,8 +568,8 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None)
             line = vcf.readline()
             pbar.update(1)
     pbar.close()  # Close the progress bar when done
-    keeping_threshold = np.percentile(snp_dist_list, percentile)
-    print(f"SFS parsing: Done. Filtering variants keeping only variants with a distance that is lower than : {keeping_threshold} ({percentile}' percentile)")
+    keeping_threshold = np.percentile(snp_dist_list, percentile_cutoff)
+    print(f"SFS parsing: Done. Filtering variants keeping only variants with a distance that is lower than : {keeping_threshold} ({percentile_cutoff}' percentile)")
     snps_distance_by_chr = {}
     current_chrm = None
     pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar    
