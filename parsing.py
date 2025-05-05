@@ -158,7 +158,7 @@ def parse_config(config_file, args=None):
         param["ref_genome"] = None
     if 'length_cutoff' not in param.keys():
         param["length_cutoff"] = length_cutoff
-        
+
     # # if command line arguments are parsed
     # if args:
     #     # Iterate over the arguments, as they override config file
