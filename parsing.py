@@ -512,6 +512,13 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
     All_snp_count = 0
     Kept_snp_count = 0
     snp_dist_list = []
+    exclude_pos = {}
+    stats = {"above_snp_distrib_cutoff": 0,
+             # pos masked by bed file
+             "masked_pos": 0,
+             "missing_data": 0,
+             "pluriall": 0
+             }
     if mask:
         print(f"Omitting variants not present in {mask}.")
         mask = parse_bed(mask)
@@ -530,16 +537,17 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
         while line != "":
             if line[0:6] == "#CHROM":
                 # parsing the header line
+                header_list = line[:-1].split("\t")
                 for p in PARAM["name_pop"]:
                     pos_ind_pop = []
                     for ind in PARAM[p]:
-                        pos_ind_pop.append(line[:-1].split("\t").index(ind))
+                        pos_ind_pop.append(header_list.index(ind))
                     cols_in_vcf["pos_"+p] = pos_ind_pop
                 # skip the rest of the code for this line
                 line = vcf.readline()
                 continue
             if line.startswith("#"):
-                # ignore other comments
+                # ignore comments
                 line = vcf.readline()
                 continue
             chrm = line.split()[0]
@@ -554,9 +562,29 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
                     pos_kept = kept_pos(mask, chrm)
                 else:
                     pos_kept = None
-            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and \
-               "," not in line.split("\t")[4] and \
-               pos_in_mask(pos_kept, pos):
+                # initialize exclude_pos for this chrm
+                exclude_pos[chrm] = set()
+            split_line = line.split("\t")
+            reformed_line = split_line[0:9]
+            # keep only specified samples
+            for sample_pos_list in cols_in_vcf.values():
+                for sample_pos in sample_pos_list:
+                    reformed_line.append(split_line[sample_pos])
+            reformed_line = "\t".join(reformed_line)
+            skip_line = False
+            if line[0] != "#":
+                # comment
+                skip_line = False
+            if ".:" in reformed_line or "/." in reformed_line or "./" in reformed_line or ".|" in reformed_line or "|." in reformed_line:
+                stats["missing_data"] += 1
+                skip_line = True
+            if "," in reformed_line.split("\t")[4]:
+                stats["pluriall"] += 1
+                skip_line = True
+            if not pos_in_mask(pos_kept, pos):
+                stats["masked_pos"] += 1
+                skip_line = True
+            if not skip_line:
                 snp_nb += 1
                 split_line = line.split("\t")
                 for p in PARAM["name_pop"]:
@@ -565,6 +593,9 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
                     if snp_nb > tab_size:
                         snp_dist = tab[snp_nb % tab_size] - tab[(snp_nb+1) % tab_size]
                         snp_dist_list.append(snp_dist)
+            else:
+                # if the line is skipped, put it in the exclude list
+                exclude_pos[chrm].add(pos)
             line = vcf.readline()
             pbar.update(1)
     pbar.close()  # Close the progress bar when done
@@ -577,16 +608,6 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
         line = vcf.readline()    
         # we read all the lines of the vcf
         while line != "":
-            if line[0:6] == "#CHROM":
-                # parsing the header line
-                for p in PARAM["name_pop"]:
-                    pos_ind_pop = []
-                    for ind in PARAM[p]:
-                        pos_ind_pop.append(line[:-1].split("\t").index(ind))
-                    cols_in_vcf["pos_"+p] = pos_ind_pop
-                # skip the rest of the code for this line
-                line = vcf.readline()
-                continue
             if line.startswith("#"):
                 # ignore other comments
                 line = vcf.readline()
@@ -602,25 +623,21 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
                 # reset the tab, otherwise distances are going to be false
                 tab = [1] * tab_size
                 snp_nb = 0
-                if mask:
-                    pos_kept = kept_pos(mask, chrm)
-                else:
-                    pos_kept = None
-            if line[0] != "#" and ".:" not in line and "/." not in line and "./" not in line and ".|" not in line and "|." not in line and \
-               "," not in line.split("\t")[4] and \
-               pos_in_mask(pos_kept, pos):
+            split_line = line.split("\t")
+            if pos not in exclude_pos[chrm]:
                 snp_nb += 1
-                split_line = line.split("\t")
                 for p in PARAM["name_pop"]:
                     # do something with this snp
                     tab[snp_nb % tab_size] = pos
                     if snp_nb > tab_size:
                         snp_dist = tab[snp_nb % tab_size] - tab[(snp_nb+1) % tab_size]
-                        if snp_dist < keeping_threshold:
+                        if snp_dist <= keeping_threshold:
                             Kept_snp_count += 1
                             snps_distance_by_chr[chrm][pos] = snp_dist
                             SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
                                                         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
+                        else:
+                            stats["above_snp_distrib_cutoff"] += 1
                 if GQ:
                     for p in PARAM["name_pop"]:
                         GQ_dict[p] = distrib_GQ(GQ_pop = GQ_dict[p], line = split_line, pos_ind = cols_in_vcf["pos_"+p])
@@ -629,4 +646,7 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
     pbar.close()  # Close the progress bar when done
     L = (All_snp_count - Kept_snp_count) / All_snp_count * Nseq
     print("Finished building SFS.")
+    print(f"Stats:\n-------\n# SNPs:\t{All_snp_count}\nMissing data:\t{stats['missing_data']}\nPluriallelic sites:\t{stats['pluriall']}"+\
+          f"\nSites above percentile cutoff [{percentile_cutoff}]:\t{stats['above_snp_distrib_cutoff']}\n"+\
+          f"Kept sites:\t{Kept_snp_count}")
     return SFS_dict, GQ_dict, round(L), snps_distance_by_chr
