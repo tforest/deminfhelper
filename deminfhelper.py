@@ -138,6 +138,8 @@ def parse_args():
     args = parser.parse_args()
     if args.sfs:
         optional_args = [args.popid, args.vcf, args.out]
+    elif args.plot_sfs:
+        optional_args = [args.popid, args.out]
     else:
         optional_args = [args.popid, args.gentime, args.mu, args.out]
 
@@ -206,7 +208,7 @@ def main():
             'mask' : args.mask
         }
         for p in param["name_pop"]:
-            if p in list(param.keys()):
+            if p in list(param.keys()) and args.samples != "all":
                 param[p] = param[p].split(",")
             else:
                 # if the pop is not defined in the config, the same list
