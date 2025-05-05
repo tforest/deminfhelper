@@ -139,7 +139,7 @@ def parse_args():
     if args.sfs:
         optional_args = [args.popid, args.vcf, args.out]
     elif args.plot_sfs:
-        optional_args = [args.popid, args.out]
+        optional_args = [args.popid, args.vcf, args.out]
     else:
         optional_args = [args.popid, args.gentime, args.mu, args.out]
 
