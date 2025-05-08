@@ -399,7 +399,7 @@ def dadi_output_parse(dadi_output_file):
     return all_vals
 
 def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
-                 keep_modified_vcf = False, modified_vcf_ram = False):
+                 keep_modified_vcf = False, modified_vcf_ram = False, mem=4096):
     """
     Perform Principal Component Analysis (PCA) on genetic data from a VCF file and generate PCA plots.
 
@@ -427,6 +427,7 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
                     vcf_file, " -Oz -o ", \
                     plink_out_dir+popid+"_IDs.vcf.gz"])
     cmd2 = "".join(["plink2 --vcf ", plink_out_dir+popid+"_IDs.vcf.gz", \
+                    " --memory ", str(mem), \
                     " --make-bed --allow-extra-chr --max-alleles ", str(ploidy), \
                     " --snps-only --out ", plink_out_dir+popid, " --freq"])
     print(cmd1)
