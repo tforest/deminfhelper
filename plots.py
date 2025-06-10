@@ -199,7 +199,7 @@ def plot_stairwayplot2(popid, summary_file, out_dir, xlog=True, ylog=True):
         plt.xscale("log")
     if ylog:
         plt.yscale("log")
-    plt.xlabel('Time (in years)')
+    plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_stw_plot.png")
     plt.close()
@@ -249,7 +249,7 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True)
     if ylog:
         plt.yscale("log")
     plt.title(fr"[MSMC2] {popid} $\mu$={mu} gen.t={gen_time}")
-    plt.xlabel('Time (in years)')
+    plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_msmc2_plot.png")
     plt.close()
@@ -445,14 +445,14 @@ def plot_smcpp(popid, summary_file, out_dir, xlog=True, ylog=True):
     if ylog:
         plt.yscale("log")
     plt.title(fr"[SMC++] {popid}")
-    plt.xlabel('Time (in years)')
+    plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
     plt.savefig(out_dir+popid+"_smcpp_plot.png")
     plt.close()
     
 def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_time,
                                   xlim = None, ylim = None, xlog = True, ylog = True,
-                                  max_v = -10**6, nb_plots_max = 10, title="Dadi pop. estimates"):
+                                  max_v = -10**6, nb_plots_max = 10, title=None):
     """
     Plot demographic scenarios estimated using Dadi for a population with three epochs of size changes.
 
@@ -482,7 +482,6 @@ def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_ti
     Returns:
         None: The function generates the Dadi plot but does not return any values.
     """
-    best_model = None
     scenarios = {}
     for elem in dadi_vals_list:
         # elem is structured like this:
@@ -506,23 +505,30 @@ def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_ti
         TB = np.array(elem[2][2]) * gen_time * Nanc
         TF = np.array(elem[2][3]) * gen_time * Nanc
         # now create x and y
-        lines_x.append([0, TF, TF, TF+TB, TF+TB, (TF+TB)+0.01])
-        lines_y.append([nuF, nuF, nuB, nuB, 1, 1])
+        lines_x.append([0, TF, TF, TF+TB, TF+TB])
+        lines_y.append([nuF, nuF, nuB, nuB, 1])
     for i in range(1, len(lines_x)):
         x = lines_x[i]
         y = lines_y[i]
         plt.plot(x, y, '--', alpha = 0.4)
+        # draws an artificial dotted line to represent infinity of ancestral pop
+        plt.hlines(y[-1], x[-1], x[-1]*1.05, linestyle=':', alpha = 0.4)
     #best model :
     best_x = lines_x[0]
     best_y = lines_y[0]
     plt.plot(best_x, best_y, 'r-', lw=2)
+    # draws an artificial dotted line to represent infinity of ancestral pop
+    plt.hlines(best_y[-1], best_x[-1], best_x[-1]*1.05, linestyle=':', color='red')
     if xlog:
         plt.xscale("log")
     if ylog:
         plt.yscale("log")
     plt.ylabel("Individuals (Na)")
-    plt.xlabel("Time (years)")
-    plt.title(fr"[Dadi] {name_pop} $\mu$={mu} gen.t={gen_time}")
+    plt.xlabel("Time (years ago)")
+    if title:
+        plt.title(title)
+    else:
+        plt.title(fr"[Dadi] {name_pop} $\mu$={mu} gen.t={gen_time}")
     if xlim:
         plt.xlim(xlim)
     if ylim:
@@ -592,7 +598,7 @@ def Gplot(T_scaled_gen,gen_time,dadi_vals_list,name_pop,out_dir,popid,
     #plt.plot(T,[i/(2*Ne3[-1]) for i in Ne3],color="grey")
     plt.title(popid)
     #plt.xlim(0,18000)
-    plt.xlabel('Time (in years)')
+    plt.xlabel('Time (years ago)')
     plt.ylabel('Na')
     plt.savefig(out_dir+popid+"_all_plot.png")
     plt.close()
