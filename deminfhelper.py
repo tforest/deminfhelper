@@ -26,7 +26,7 @@ Usage:
 ## Command-Line Arguments:
 - `--config_file`: Path to the configuration file (optional).
 - `--cpus`: Number of CPU threads to use (optional).
-- `-- mem`: Memory (MiB) allocated for subprocesses.
+- `--mem`: Memory (MiB) allocated for subprocesses.
 - `--sfs`: Compute the SFS from the VCF file.
 - `--sfs_transformed`: Normalize and transform the SFS.
 - `--plot_sfs`: Plot the SFS.
@@ -90,7 +90,7 @@ def parse_args():
     parser.add_argument("--config_file", help="path to the configuration file")
     #optional arguments
     parser.add_argument("--cpus", help="# CPU threads to use",  type=int, default=1)
-    parser.add_argument("--mem", help="# CPU threads to use",  type=int, default=4096)
+    parser.add_argument("--mem", help="Memory (MiB) allocated for subprocesses",  type=int, default=4096)
     # mask
     parser.add_argument("--mask", help="Keep only regions specified in a given BED file.", type=str)
     #SFS
