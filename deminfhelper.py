@@ -100,7 +100,7 @@ def parse_args():
     parser.add_argument("--percentile_cutoff", help="Percentile of SNPs distance below which SNPs are kept.",  type=int, default=90)
     #Stairwayplot2
     parser.add_argument("--stairwayplot2", help = "to run stairwayplot2", action = "store_true")
-    parser.add_argument("--plot_stairwayplot2", help = "to run stairwayplot2", action = "store_true")
+    parser.add_argument("--plot_stairwayplot2", help = "Plot stairwayplot2 results", action = "store_true")
     #Dadi
     parser.add_argument("--dadi", help = "to run dadi: the sfs must not be transformed", action = "store_true")
     parser.add_argument("--plot_dadi", help = "to create popsize plot from dadi output.", action = "store_true")

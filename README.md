@@ -128,16 +128,22 @@ It is recommended to get all the required dependencies using Conda, inside a ded
 ```bash
 $ ./deminfhelper.py -h
 
-usage: deminfhelper.py [-h] [--config_file CONFIG_FILE] [--cpus CPUS] [--sfs] [--sfs_transformed] 
-[--plot_sfs] [--stairwayplot2] [--plot_stairwayplot2] [--dadi]
-                       [--plot_dadi] [--msmc2] [--plot_msmc2] 
-                       [--msmc2_kwargs MSMC2_KWARGS] [--psmc] [--plot_psmc] 
+usage: deminfhelper.py [-h] [--config_file CONFIG_FILE] [--cpus CPUS]
+                       [--mem MEM] [--mask MASK] [--sfs]
+                       [--sfs_transformed] [--plot_sfs]
+                       [--percentile_cutoff PERCENTILE_CUTOFF]
+                       [--stairwayplot2] [--plot_stairwayplot2] [--dadi]
+                       [--plot_dadi] [--msmc2] [--plot_msmc2]
+                       [--msmc2_kwargs MSMC2_KWARGS] [--psmc]
+                       [--plot_psmc]
                        [--plot_psmc_kwargs PLOT_PSMC_KWARGS]
-                       [--psmc_kwargs PSMC_KWARGS] [--gq_distrib] [--smcpp] 
-                       [--plot_smcpp] [--Gplot] [--folded] [--pca] [--plot_pca] 
-                       [--n_clust_kmeans N_CLUST_KMEANS]
-                       [--popid POPID] [--samples SAMPLES] [--vcf VCF] [--gentime GENTIME] 
-                       [--mu MU] [--out OUT] [--out_dir_stats OUT_DIR_STATS] [--L L] [--n N]
+                       [--psmc_kwargs PSMC_KWARGS] [--gq_distrib]
+                       [--smcpp] [--plot_smcpp] [--Gplot] [--folded]
+                       [--pca] [--plot_pca]
+                       [--n_clust_kmeans N_CLUST_KMEANS] [--popid POPID]
+                       [--samples SAMPLES] [--vcf VCF]
+                       [--gentime GENTIME] [--mu MU] [--out OUT]
+                       [--out_dir_stats OUT_DIR_STATS] [--L L] [--n N]
                        [--contig_filter CONTIG_FILTER]
 
 Computes the sfs from the vcf and runs demography inference softwares.
@@ -146,50 +152,62 @@ optional arguments:
   -h, --help            show this help message and exit
   --config_file CONFIG_FILE
                         path to the configuration file
-  --cpus CPUS           number of CPU threads to use
+  --cpus CPUS           # CPU threads to use
+  --mem MEM             Memory (MiB) allocated for subprocesses
   --mask MASK           Keep only regions specified in a given BED file.
   --sfs                 to compute the sfs
   --sfs_transformed     to normalize the sfs
   --plot_sfs            to plot the sfs
+  --percentile_cutoff PERCENTILE_CUTOFF
+                        Percentile of SNPs distance below which SNPs are
+                        kept.
   --stairwayplot2       to run stairwayplot2
-  --plot_stairwayplot2  to run stairwayplot2
+  --plot_stairwayplot2  Plot stairwayplot2 results
   --dadi                to run dadi: the sfs must not be transformed
   --plot_dadi           to create popsize plot from dadi output.
   --msmc2               to run msmc2
   --plot_msmc2          to plot msmc2
   --msmc2_kwargs MSMC2_KWARGS
-                        Optional args for MSMC2 (list separated by ';', 
-                        eg. --msmc2_kwarg -i 25; -p 1*2+25*1+1*2+1*3 and so on).
+                        Optional args for MSMC2 (list separated by ';',
+                        eg. --msmc2_kwarg -i 25; -p 1*2+25*1+1*2+1*3 and
+                        so on).
   --psmc                to run PSMC
   --plot_psmc           to plot psmc inference
   --plot_psmc_kwargs PLOT_PSMC_KWARGS
-                        Params to pass to plot_psmc.pl script. Precise them inside quotes 
-                        (eg. '-x 10**4 -X 150000')
+                        Params to pass to plot_psmc.pl script. Precise
+                        them inside quotes (eg. '-x 10**4 -X 150000')
   --psmc_kwargs PSMC_KWARGS
-                        PSMC params (eg. --psmc_kwarg -p 10+22*2+4+6; -N30 -t15 -r5 and so on)
-  --gq_distrib          to compute the GQ (genotype quality) distribution
+                        PSMC params (eg. --psmc_kwarg -p 10+22*2+4+6;
+                        -N30 -t15 -r5 and so on)
+  --gq_distrib          to compute the GQ (genotype quality)
+                        distribution
   --smcpp               run smcpp
   --plot_smcpp          to plot smcpp inference
   --Gplot               to plot all inferences on the same graph
   --folded              Fold the SFS. Default: True
   --pca                 Compute PCA using Plink2
-  --plot_pca            Compute PCA using Plink2
+  --plot_pca            Plot PCA
   --n_clust_kmeans N_CLUST_KMEANS
-                        Defines the number of k clusters for the k-means on the PCA
+                        Defines the number of k clusters for the k-means
+                        on the PCA
   --popid POPID         a population identifier; eg. species name
-  --samples SAMPLES     a list of samples to use in the VCF. By default all samples are taken.
+  --samples SAMPLES     a list of samples to use in the VCF. By default
+                        all samples are taken.
   --vcf VCF             the vcf file path, only gz format
-  --gentime GENTIME     the generation time of the species in years. Eg 1.5
-  --mu MU               the average mutation rate per site per generation
+  --gentime GENTIME     the generation time of the species in years. Eg
+                        1.5
+  --mu MU               the average mutation rate per site per
+                        generation
   --out OUT             Output path of the analysis. Will create a dir.
   --out_dir_stats OUT_DIR_STATS
                         Output path of the stats. Will create a dir.
-  --L L                 The actual size of the genotyped sequence length that produced the VCF, 
-                        before any filters.
-  --n N                 Number of sequences that produced the VCF. Eg for 5 dipl individuals, n=10.
+  --L L                 The actual size of the genotyped sequence length
+                        that produced the VCF, before any filters.
+  --n N                 Number of sequences that produced the VCF. Eg
+                        for 5 dipl individuals, n=10.
   --contig_filter CONTIG_FILTER
-                        Keep only contigs satisfiying that regular expression.
-
+                        Keep only contigs satisfiying that regular
+                        expression.
 ```
 
 5. **Example use:**
