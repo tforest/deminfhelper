@@ -123,7 +123,7 @@ def parse_args():
     # Statistics
     # PCA
     parser.add_argument("--pca", help = "Compute PCA using Plink2", action = "store_true")
-    parser.add_argument("--plot_pca", help = "Compute PCA using Plink2", action = "store_true")
+    parser.add_argument("--plot_pca", help = "Plot PCA", action = "store_true")
     parser.add_argument("--n_clust_kmeans", help="Defines the number of k clusters for the k-means on the PCA",  type=int)
     # Config args; if no config file
     parser.add_argument("--popid", help="a population identifier; eg. species name",  type=str)
