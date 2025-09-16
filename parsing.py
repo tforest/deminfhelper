@@ -113,7 +113,8 @@ def parse_config(config_file, args=None):
     param = {}
     with open(config_file, "rt") as config:
         line=config.readline()
-        while line != "":
+        # if the line can be stripped, it's not empty
+        while line.strip():
             if line[0] != "#":
                     param[line[:-1].split(": ")[0]] = line[:-1].split(": ")[1].strip()
             line = config.readline()
