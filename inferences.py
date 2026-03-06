@@ -138,21 +138,27 @@ def input_stairwayplot2(popid, nseq, L, whether_folded, SFS, mu, year_per_genera
     blueprint file to the specified output path.
     """
 
-    locals()['project_dir'] = output_path+popid #where the output of stairwayplot2 will be
-    locals()['plot_title'] = popid #name of the plots output by stairwayplot2
+    blueprint_config = {
+        'popid': popid,
+        'nseq': nseq,
+        'L': L,
+        'whether_folded': whether_folded,
+        'SFS': ' '.join(map(str, SFS)),
+        'mu': mu,
+        'year_per_generation': year_per_generation,
+        'stairway_plot_dir': stairway_plot_dir,
+        'project_dir': output_path + popid,
+        'plot_title': popid,
+    }
     with open(temp_blueprint, "r") as temp, open(output_path+str(popid)+".blueprint","w") as out_file:
-        line = temp.readline()
-        while line != '':
-            if line.split(':')[0] in locals().keys():
-                if line.split(':')[0] == 'SFS':
-                    out_file.write('sfs: ' + ' '.join(map(str, SFS)) + '\n')
-                else:
-                    out_file.write(line.split(':')[0]+': '+ str(locals().get(line.split(':')[0]))+'\n')
-            elif line.split(':')[0] == "nrand" :
+        for line in temp:
+            key = line.split(':')[0]
+            if key == 'nrand':
                 out_file.write('nrand: '+str(int((nseq-2)/4))+' '+ str(int((nseq-2)/2))+' '+ str(int((nseq-2)*3/4))+' '+ str(int(nseq-2))+'\n')
+            elif key in blueprint_config:
+                out_file.write(f'{key}: {blueprint_config[key]}\n')
             else:
                 out_file.write(line)
-            line = temp.readline()
 
 def run_stairwayplot2(popid, out_dir, path_to_stairwayplot2):
     """
