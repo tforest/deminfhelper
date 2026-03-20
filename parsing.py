@@ -124,6 +124,14 @@ def parse_config(config_file, args=None):
     param["npop"]=int(param["npop"])
     if "n_clust_kmeans" in param and param["n_clust_kmeans"] != None:
         param["n_clust_kmeans"] = eval(param["n_clust_kmeans"])
+    if "missingness_by_sample" in param:
+        param["missingness_by_sample"] = float(param["missingness_by_sample"])
+    else:
+        param["missingness_by_sample"] = 1.0
+    if "missingness_by_site" in param:
+        param["missingness_by_site"] = int(param["missingness_by_site"])
+    else:
+        param["missingness_by_site"] = 0
     if "cpus" in param:
         param["cpus"]=int(param["cpus"])
     else:
@@ -138,6 +146,7 @@ def parse_config(config_file, args=None):
                 param["mask"]=None
         else:
             param["mask"]=None
+    param["sample_size"] = 0
     for p in param["name_pop"]:
         if p in list(param.keys()):
             param[p] = [item.strip() for item in param[p].split(",")]
@@ -146,6 +155,7 @@ def parse_config(config_file, args=None):
             # of all samples from the VCF are used for every pop
             param[p] = get_sample_names(vcf=param["vcf"])
         param["n_"+p] = len(param[p])
+        param["sample_size"] += param["n_" + p]
 
 
     # SETTING SOME DEFAULTS
@@ -336,8 +346,10 @@ def get_contigs_lengths(vcf, length_cutoff=100000, only_names=False, contig_rege
     if contig_regex:
         contig_regex = re.compile(contig_regex)
         print(f"Keeping only contigs with regex: {contig_regex}")
-        contigs = {contig_name: contig_size for contig_name, contig_size in contigs.items() if re.match(contig_regex, contig_name)}
-    print(f"Contigs={contigs}")
+        contigs = {contig_name: contig_size for contig_name, contig_size in contigs.items() if (re.match(contig_regex, contig_name))}
+    
+    
+    # print(f"Contigs={contigs}")
     if only_names:
         return list(contigs.keys())
     return contigs
@@ -398,6 +410,7 @@ def dadi_output_parse(dadi_output_file):
             all_vals.append([ite, logL, [nuB, nuF, TB, TF], theta])
     return all_vals
 
+
 def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
                  keep_modified_vcf = False, modified_vcf_ram = False, mem=4096):
     """
@@ -446,6 +459,7 @@ def pca_from_vcf(popid, vcf_file, nb_samples, out_dir, ploidy = 2,
     # Generate plot
     plots.plot_pca(plink_out_dir+popid+".pca.eigenvec", plink_out_dir+popid+".pca.eigenval", popid = popid, out_dir = out_dir)
 
+
 def parse_bed(bed_file):
     mask = {}
     with open(bed_file, "r") as bed_stream:
@@ -457,12 +471,14 @@ def parse_bed(bed_file):
                 mask[contig] += [int(start), int(end)]
     return mask
 
+
 def pos_in_mask(kept_pos, target_pos):
     if kept_pos is None:
         return True
     if target_pos not in kept_pos:
         return False
     return True
+
 
 def kept_pos(mask, chrm):
     """Given a chromosome, will return a list of all the kept positions in the mask
@@ -473,6 +489,206 @@ def kept_pos(mask, chrm):
     for k, pos in enumerate(mask[chrm][:-1:2]):
         kept_pos+=list(range(pos, mask[chrm][k+1]))
     return kept_pos
+
+
+def missingness(genotypes, stats):
+    nb_missing = 0
+    for index, elem in enumerate(genotypes):
+        if elem[1] == ":":
+            g1, g2 = True, True  # if the genotype is missing, both alleles are considered missing
+        else:
+            g1, g2 = elem[0] == ".", elem[2] == "."
+        nb_missing += (g1 + g2)
+        # print(elem[0], elem[2], nb_missing)
+        stats["missingness_by_sample"][index] += (g1 or g2)
+    # print(genotypes, nb_missing)
+    stats["missingness_by_site"][nb_missing] += 1
+    return nb_missing
+
+
+def is_indel_or_pluriallelic(reformed_line, stats = None): 
+    """
+    Check if the variant is an indel or pluriallelic
+    This function checks the variant represented by reformed_line to determine if it is an indel
+    (insertion or deletion) or a pluriallelic site (multiple alleles).
+
+    Parameters:
+    - reformed_line (list): A list representing a VCF line with variant information.
+
+    Returns:
+    - bool: True if the variant is an indel or pluriallelic, False otherwise.
+    """
+    if "," in reformed_line[4]:
+        if stats is not None:
+            stats["pluriall"] += 1
+        return True  # pluriallelic site
+    elif len(reformed_line[4]) > 1 or len(reformed_line[3]) > 1:
+        if stats is not None:
+            stats["pluriall"] += 1
+        return True  # indel
+    return False  # neither indel nor pluriallelic
+
+
+def exess_het(field):
+    pattern = re.compile(r"ExcessHet=([-+]?\d*\.\d+|\d+)")
+    match = pattern.search(field)
+    return float(match.group(1))
+
+
+def first_parsing(PARAM, contigs, mask = None):
+    cols_in_vcf = {}    # Dictionary to store column indices for each population
+    exclude_pos = {}  # Dictionary to store positions to exclude for each chromosome
+    snp_dist_list = []  # List to store SNP distances
+    tab_size = 4 # size of the tab to keep the last 4 positions
+    stats = {"above_snp_distrib_cutoff": 0,
+            # pos masked by bed file
+            "masked_pos": 0,
+            "missingness_by_sample": [0] *  PARAM["sample_size"],
+            "missingness_by_site": [0] * (PARAM["sample_size"] * 2 + 1),
+            "missing_data": 0,
+            "pluriall": 0,
+            "indels": 0
+            }
+    nb_line_not_skip = 0
+    current_chrm = None  # Variable to keep track of the current chromosome
+    pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar
+    with gzip.open(PARAM["vcf"],  mode='rt') as vcf:
+        line = vcf.readline()   
+        # we read all the lines of the vcf
+        while line != "":
+            if line[0:6] == "#CHROM":
+                # parsing the header line
+                header_list = line[:-1].split("\t")
+                for p in PARAM["name_pop"]:
+                    pos_ind_pop = []
+                    for ind in PARAM[p]:
+                        pos_ind_pop.append(header_list.index(ind))
+                    cols_in_vcf["pos_"+p] = pos_ind_pop
+                # skip the rest of the code for this line
+                line = vcf.readline()
+                continue
+            if line.startswith("#"):
+                 # ignore comments
+                line = vcf.readline()
+                continue
+            chrm = line.split()[0]
+            pos = int(line.split()[1])
+            if chrm != current_chrm:
+                # new chromosome/contig initialization
+                current_chrm = chrm
+                # reset the tab, otherwise distances are going to be false
+                tab = [1] * tab_size
+                snp_nb = 0
+                # if mask:
+                #     pos_kept = kept_pos(mask, chrm)
+                # else:
+                #     pos_kept = None
+                # initialize exclude_pos for this chrm
+                exclude_pos[chrm] = set()
+            split_line = line.split("\t")
+            if is_indel_or_pluriallelic(split_line): # if snp is noeither snp nor biallelic then it is skip
+                line = vcf.readline()
+                continue
+            reformed_line = split_line[0:9]
+            for sample_pos_list in cols_in_vcf.values():
+                for sample_pos in sample_pos_list:
+                    reformed_line.append(split_line[sample_pos])
+            skip_line = False
+            if line[0] != "#":
+                # comment
+                skip_line = False     
+            if not skip_line:
+                nb_line_not_skip += 1
+                nb_missing = missingness(reformed_line[9:], stats) # calculate missingness
+                if nb_missing > PARAM["missingness_by_site"]: # site missingness threshold
+                    stats["missing_data"] += 1
+                    skip_line = True # skip line if too much missing data
+            #à quoi ca sert
+            # if not pos_in_mask(pos_kept, pos):
+            #     stats["masked_pos"] += 1
+            #     skip_line = True
+            if not skip_line:
+                snp_nb += 1
+                split_line = line.split("\t")
+                for p in PARAM["name_pop"]:
+                    # do something with this snp
+                    tab[snp_nb % tab_size] = pos
+                    if snp_nb > tab_size:
+                        snp_dist = tab[snp_nb % tab_size] - tab[(snp_nb+1) % tab_size]
+                        snp_dist_list.append(snp_dist)
+            else:
+                # if the line is skipped, put it in the exclude list
+                exclude_pos[chrm].add(pos)
+            line = vcf.readline()
+            pbar.update(1)
+    pbar.close()  # Close the progress bar when done
+    print("First parsing the VCF to determine the distribution of distances between variants.")
+    stats['missingness_by_sample'] = np.array(stats['missingness_by_sample']) / nb_line_not_skip
+    return cols_in_vcf, exclude_pos, snp_dist_list, stats, tab_size
+
+
+import matplotlib.pyplot as plt
+
+# Fonction 1 : Plot simple de "missing_sample"
+def plot_missing_sample(data, PARAM):
+    plt.figure(figsize=(6, 4))
+    plt.hist(data, bins='auto', color='tomato', edgecolor='black')
+    plt.title("Histogram of Missing Data Proportions (Sample)")
+    plt.xlabel("Missing Proportion")
+    plt.ylabel("Frequency")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    os.makedirs(PARAM ["out_dir_stats"], exist_ok=True)
+    plt.savefig(PARAM ["out_dir_stats"] + "missing_sample_histogram.png")
+
+# Fonction 2 : Plot cumulée en fréquence de "missing_site"
+def plot_missing_site_cumulative(data, PARAM):
+    cumulative = np.cumsum(data)
+    cumulative_freq = cumulative / cumulative[-1]  # Normaliser
+    plt.figure(figsize=(8, 4))
+    plt.plot(range(len(data)), cumulative_freq, marker='o', linestyle='-', color='slateblue')
+    plt.title("Missing Site - Cumulative Frequency (Original Order)")
+    plt.xlabel("Index")
+    plt.ylabel("Fréquence Cumulée")
+    plt.grid(True)
+    plt.tight_layout()
+    os.makedirs(PARAM ["out_dir_stats"], exist_ok=True)
+    plt.savefig(PARAM ["out_dir_stats"] + "missing_site_cumulative.png")
+
+def delete_individuals(cols_in_vcf, PARAM, missingness_by_sample, missingness_threshold = 1.0):
+    """
+    Delete individuals from the VCF based on missingness threshold.
+
+    This function checks the missingness of each individual in the VCF and removes those
+    whose missingness exceeds the specified threshold.
+
+    Parameters:
+    - cols_in_vcf (dict): Dictionary containing column indices for each population.
+    - PARAM (dict): Dictionary containing configuration parameters.
+    - stats (dict): Dictionary containing statistics, including missingness by sample.
+    - missingness_threshold (float): Threshold for missingness to determine if an individual should be removed.
+
+    Returns:
+    - None
+    """
+    # Calculate the total number of samples
+    if missingness_by_sample is None:
+        print("No missingness data provided. Skipping individual deletion.")
+        return
+    # Identify individuals to delete based on missingness threshold
+    individuals_to_delete = []
+    for i, missing in enumerate(missingness_by_sample):
+        if missing  > missingness_threshold:
+            individuals_to_delete.append(9 + i)
+    sample_size = 0
+    # Remove identified individuals from cols_in_vcf
+    for pop in PARAM["name_pop"]:
+        cols_in_vcf["pos_" + pop] = [i for i in cols_in_vcf["pos_" + pop] if i not in individuals_to_delete]
+        PARAM["n_" + pop] = len(cols_in_vcf["pos_" + pop])
+        sample_size += PARAM["n_" + pop]
+    PARAM["sample_size"] = sample_size
+    print(f"Deleted {len(individuals_to_delete)} individuals with missingness rate inferior to {missingness_threshold}.")
+
 
 # Function using dynamic distance evaluation with rolling positions
 def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None, percentile_cutoff = 90):
@@ -505,101 +721,22 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
     contigs = get_contigs_lengths(vcf=PARAM["vcf"], length_cutoff=length_cutoff)
     # total size of all contigs used
     Nseq = sum(list(contigs.values()))
-    tab_size = 4
     SFS_dict = {}
     GQ_dict = {}
-    cols_in_vcf = {}
-    current_chrm = None
     All_snp_count = 0
     Kept_snp_count = 0
-    snp_dist_list = []
-    exclude_pos = {}
-    stats = {"above_snp_distrib_cutoff": 0,
-             # pos masked by bed file
-             "masked_pos": 0,
-             "missing_data": 0,
-             "pluriall": 0
-             }
     if mask:
         print(f"Omitting variants not present in {mask}.")
         mask = parse_bed(mask)
     # we initialize a sfs for each population
     for p in PARAM["name_pop"]:
-        SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["n_"+str(p)], folded=PARAM["folded"], sfs_ini=True))
+        SFS_dict[p] = np.array(sfs.build_sfs(n=PARAM["sfs_size"], folded=PARAM["folded"], sfs_ini=True))
     if GQ:
         for p in PARAM["name_pop"]:
             GQ_dict[p] = {}
-    pbar = tqdm(total=0, dynamic_ncols=True, unit='line', unit_scale=True) # Initialize the progress bar
-    # First parse
-    print("First parsing the VCF to determine the distribution of distances between variants.")
-    with gzip.open(PARAM["vcf"],  mode='rt') as vcf:
-        line = vcf.readline()    
-        # we read all the lines of the vcf
-        while line != "":
-            if line[0:6] == "#CHROM":
-                # parsing the header line
-                header_list = line[:-1].split("\t")
-                for p in PARAM["name_pop"]:
-                    pos_ind_pop = []
-                    for ind in PARAM[p]:
-                        pos_ind_pop.append(header_list.index(ind))
-                    cols_in_vcf["pos_"+p] = pos_ind_pop
-                # skip the rest of the code for this line
-                line = vcf.readline()
-                continue
-            if line.startswith("#"):
-                # ignore comments
-                line = vcf.readline()
-                continue
-            chrm = line.split()[0]
-            pos = int(line.split()[1])
-            if chrm != current_chrm:
-                # new chromosome/contig initialization
-                current_chrm = chrm
-                # reset the tab, otherwise distances are going to be false
-                tab = [1] * tab_size
-                snp_nb = 0
-                if mask:
-                    pos_kept = kept_pos(mask, chrm)
-                else:
-                    pos_kept = None
-                # initialize exclude_pos for this chrm
-                exclude_pos[chrm] = set()
-            split_line = line.split("\t")
-            reformed_line = split_line[0:9]
-            # keep only specified samples
-            for sample_pos_list in cols_in_vcf.values():
-                for sample_pos in sample_pos_list:
-                    reformed_line.append(split_line[sample_pos])
-            reformed_line = "\t".join(reformed_line)
-            skip_line = False
-            if line[0] != "#":
-                # comment
-                skip_line = False
-            if ".:" in reformed_line or "/." in reformed_line or "./" in reformed_line or ".|" in reformed_line or "|." in reformed_line:
-                stats["missing_data"] += 1
-                skip_line = True
-            if "," in reformed_line.split("\t")[4]:
-                stats["pluriall"] += 1
-                skip_line = True
-            if not pos_in_mask(pos_kept, pos):
-                stats["masked_pos"] += 1
-                skip_line = True
-            if not skip_line:
-                snp_nb += 1
-                split_line = line.split("\t")
-                for p in PARAM["name_pop"]:
-                    # do something with this snp
-                    tab[snp_nb % tab_size] = pos
-                    if snp_nb > tab_size:
-                        snp_dist = tab[snp_nb % tab_size] - tab[(snp_nb+1) % tab_size]
-                        snp_dist_list.append(snp_dist)
-            else:
-                # if the line is skipped, put it in the exclude list
-                exclude_pos[chrm].add(pos)
-            line = vcf.readline()
-            pbar.update(1)
-    pbar.close()  # Close the progress bar when done
+    cols_in_vcf, exclude_pos, snp_dist_list, stats, tab_size = first_parsing(PARAM, contigs, mask=mask)
+    # delete_individuals(cols_in_vcf, PARAM, stats["missingness_by_sample"], PARAM["missingness_by_sample"])
+   #def
     keeping_threshold = np.percentile(snp_dist_list, percentile_cutoff)
     print(f"SFS parsing: Done. Filtering variants keeping only variants with a distance that is lower than : {keeping_threshold} ({percentile_cutoff}' percentile)")
     snps_distance_by_chr = {}
@@ -609,14 +746,21 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
         line = vcf.readline()    
         # we read all the lines of the vcf
         while line != "":
-            if line.startswith("#"):
+            split_line = line.split("\t")
+            if line.startswith("#") or is_indel_or_pluriallelic(split_line): 
                 # ignore other comments
                 line = vcf.readline()
                 continue
             # the line is a variant, count it
+            # if float(split_line[7].split(";")[5].split("=")[1]) > 60.:
+            #     line = vcf.readline()
+            #     continue
             All_snp_count += 1
             chrm = line.split()[0]
-            pos = int(line.split()[1])
+            # if chrm not in contigs:
+            #     line = vcf.readline()
+            #     continue
+            pos = int(split_line[1])
             if chrm != current_chrm:
                 # new chromosome/contig initialization
                 current_chrm = chrm
@@ -624,7 +768,6 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
                 # reset the tab, otherwise distances are going to be false
                 tab = [1] * tab_size
                 snp_nb = 0
-            split_line = line.split("\t")
             if pos not in exclude_pos[chrm]:
                 snp_nb += 1
                 for p in PARAM["name_pop"]:
@@ -635,7 +778,7 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
                         if snp_dist <= keeping_threshold:
                             Kept_snp_count += 1
                             snps_distance_by_chr[chrm][pos] = snp_dist
-                            SFS_dict[p] = sfs.build_sfs(n=PARAM["n_"+p], folded=PARAM["folded"],  sfs_ini = False, \
+                            SFS_dict[p] = sfs.build_sfs(PARAM["sfs_size"], folded=PARAM["folded"],  sfs_ini = False, \
                                                         line = split_line, sfs = SFS_dict[p], pos_ind = cols_in_vcf["pos_"+p])
                         else:
                             stats["above_snp_distrib_cutoff"] += 1
@@ -645,9 +788,12 @@ def vcf_line_parsing(PARAM, SFS = False, GQ = False, SMCPP = False, mask = None,
             line = vcf.readline()
             pbar.update(1)
     pbar.close()  # Close the progress bar when done
+    # print(SFS_dict)
     L = (All_snp_count - Kept_snp_count) / All_snp_count * Nseq
     print("Finished building SFS.")
-    print(f"Stats:\n-------\n# SNPs:\t{All_snp_count}\nMissing data:\t{stats['missing_data']}\nPluriallelic sites:\t{stats['pluriall']}"+\
+    print(f"Stats:\n-------\n# SNPs:\t{All_snp_count}\nMissing sample:\t{stats['missingness_by_sample']}\nMissing site:\t{stats['missingness_by_site']}\nPluriallelic sites or indels:\t{stats['pluriall']}"+\
           f"\nSites above percentile cutoff [{percentile_cutoff}]:\t{stats['above_snp_distrib_cutoff']}\n"+\
           f"Kept sites:\t{Kept_snp_count}")
+    plot_missing_sample(stats['missingness_by_sample'], PARAM)
+    plot_missing_site_cumulative(stats['missingness_by_site'], PARAM)
     return SFS_dict, GQ_dict, round(L), snps_distance_by_chr
