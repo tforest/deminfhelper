@@ -96,6 +96,8 @@ def parse_args():
     #SFS
     parser.add_argument("--sfs", help = "to compute the sfs", action = "store_true")
     parser.add_argument("--sfs_transformed", help = "to normalize the sfs", action = "store_true")
+    parser.add_argument("--missingness_by_sample", help="Threshold for proportion of missing data. If an individual exceeds this threshold, it will be filtered out.", type=float)
+    parser.add_argument("--missingness_by_site", help="Number of haplotypes to remove for subsampling. If more haplotypes are missing, the site is filtered. Otherwise, the site is subsampled in the SFS calculation.", type=int)    
     parser.add_argument("--plot_sfs", help = "to plot the sfs", action = "store_true")
     parser.add_argument("--percentile_cutoff", help="Percentile of SNPs distance below which SNPs are kept.",  type=int, default=90)
     #Stairwayplot2
@@ -208,8 +210,11 @@ def main():
             'msmc2_kwargs' : args.msmc2_kwargs,
             'psmc_kwargs' : args.psmc_kwargs,
             'plot_psmc_kwargs' : args.plot_psmc_kwargs,
-            'mask' : args.mask
+            'mask' : args.mask,
+            "missingness_by_sample": args.missingness_by_sample,
+            "missingness_by_site": args.missingness_by_site
         }
+        param["sample_size"] = 0
         for p in param["name_pop"]:
             if p in list(param.keys()) and args.samples != "all":
                 param[p] = param[p].split(",")
@@ -217,7 +222,8 @@ def main():
                 # if the pop is not defined in the config, the same list
                 # of all samples from the VCF are used for every pop
                 param[p] = get_sample_names(vcf=param["vcf"])
-            param["n_"+p] = len(param[p])
+            param["n_"+ p] = len(param[p])
+            param["sample_size"] += param["n_" + p]
 
     # loop over command line args
     for arg_name in vars(args):
@@ -225,7 +231,10 @@ def main():
        if arg_name in param.keys() and arg_value is not None:
            # command args value overwrite params in config file
            param[arg_name] = arg_value
-
+    if param["missingness_by_site"] is None or param["missingness_by_site"] > param["sample_size"]:
+        param["missingness_by_site"] = 0
+    #sfs size after missingness filter, if uneven then nb of diploid indiviuals is sample_size - param["missingness_by_site"]//2 - 1 else  param["missingness_by_site"] - n//2
+    param["sfs_size"] = param["sample_size"] - (param["missingness_by_site"] % 2 + param["missingness_by_site"] // 2)
     ## CREATING DIRECTORIES
     if not os.path.exists(param["out_dir"]):
         os.makedirs(param["out_dir"])
