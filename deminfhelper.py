@@ -69,6 +69,7 @@ import matplotlib.pyplot as plt
 import argparse
 import numpy as np
 import os
+import shutil
 
 
 ## IMPORT CUSTOM FUNCTIONS
@@ -341,6 +342,10 @@ def main():
                 SFS_dict[param["name_pop"][0]] = sfs_list
 
         for p in param["name_pop"]:
+            pop_dir = os.path.join(param["out_dir_stairwayplot2"], p)
+            if os.path.exists(pop_dir):
+                print(f"Warning: {pop_dir} already exists and will be overwritten.")
+                shutil.rmtree(pop_dir)
             if param["folded"]:
                 nseq = len(SFS_dict[p])*2
             else:
