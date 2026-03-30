@@ -59,7 +59,7 @@ python3 DemInfHelper/deminfhelper.py --config_file config.txt --plot_stairwayplo
 - The tool creates directories for output and results.
 
 """
-
+__version__ = "0.2.0"
 ## IMPORT MODULES
 
 import gzip
@@ -81,10 +81,16 @@ else:
     from .inferences import *
     from .sfs import *
     from .plots import *
-    
 def parse_args():
     ## CMD ARGUMENTS
     parser = argparse.ArgumentParser(description='Computes the sfs from the vcf and runs demography inference softwares.')
+    # version
+    parser.add_argument(
+        '--version',
+        '-v',
+        action='version',
+        version=f'%(prog)s {__version__}'
+    )
     #mandatory arguments
     parser.add_argument("--config_file", help="path to the configuration file")
     #optional arguments
