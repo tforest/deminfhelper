@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 inferences.py - Population Demographic Inference Module of DemInfHelper.
 

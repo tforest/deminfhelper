@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 plots.py - Module of DemInfHelper for generating various plots and visualizations as part of the demography inference workflow.
 

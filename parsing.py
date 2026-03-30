@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 parsing.py - Module of DemInfHelper for parsing and processing VCF files and other data formats in the demography inference workflow.
 
