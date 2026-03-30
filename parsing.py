@@ -93,6 +93,45 @@ def distrib_GQ(GQ_pop, line = [], pos_ind = None, bin_size = 10): #PL is a dict
 
     return GQ_pop
 
+def build_defaults(out_dir, name_pop, program_path=None):
+    """
+    Build default derived paths from out_dir and name_pop.
+
+    All output subdirectories and tool-specific paths follow a fixed layout rooted
+    at out_dir. Users only need to set out_dir and name_pop in their config file;
+    all other paths are inferred automatically unless explicitly overridden.
+
+    Parameters:
+        out_dir (str): Top-level output directory (e.g. './my_pop/').
+        name_pop (list): List of population identifiers.
+        program_path (str, optional): Path to the deminfhelper installation directory.
+            Defaults to the directory containing this file.
+
+    Returns:
+        dict: Default values for all derived config keys.
+    """
+    if program_path is None:
+        program_path = os.path.dirname(os.path.abspath(__file__))
+    base = out_dir.rstrip('/') + '/'
+    p0 = name_pop[0]  # used for single-pop default paths
+    return {
+        'out_dir_sfs':          base + 'output_sfs/',
+        'path_to_sfs':          base + 'output_sfs/SFS_' + p0 + '.fs',
+        'out_dir_stairwayplot2': base + 'output_stairwayplot2/',
+        'summary_file_stw':     base + 'output_stairwayplot2/' + p0 + '/' + p0 + '.final.summary',
+        'out_dir_dadi':         base + 'output_dadi/',
+        'out_dir_msmc2':        base + 'output_msmc2/',
+        'out_dir_smcpp':        base + 'output_smcpp/',
+        'out_dir_psmc':         base + 'output_psmc/',
+        'plot_file_smcpp':      base + 'output_smcpp/' + p0 + '_inference.csv',
+        'out_dir_gq_distrib':   base + 'output_stats/',
+        'final_out_dir':        base + 'inferences/',
+        'out_dir_stats':        base + 'output_stats/',
+        'path_to_stairwayplot2': program_path + '/bin/stairway_plot_es/',
+        'blueprint_template':   program_path + '/bin/template.blueprint',
+    }
+
+
 def parse_config(config_file, args=None):
     """
     Parse a configuration file and return the configuration parameters as a dictionary.
@@ -121,6 +160,8 @@ def parse_config(config_file, args=None):
     #param["transformed"]=bool(param["transformed"])
     param["name_pop"] = param["name_pop"].split(",")
     param["npop"]=int(param["npop"])
+    if "out_dir" not in param:
+        param["out_dir"] = "./" + param["name_pop"][0].strip() + "/"
     if "n_clust_kmeans" in param and param["n_clust_kmeans"] != None:
         param["n_clust_kmeans"] = eval(param["n_clust_kmeans"])
     if "missingness_by_sample" in param:
@@ -166,15 +207,12 @@ def parse_config(config_file, args=None):
     if "ref_genome" not in param:
         param["ref_genome"] = None
     if 'length_cutoff' not in param.keys():
-        param["length_cutoff"] = length_cutoff
+        param["length_cutoff"] = 100000
 
-    # # if command line arguments are parsed
-    # if args:
-    #     # Iterate over the arguments, as they override config file
-    #     for arg in vars(args):
-    #         value = getattr(args, arg)
-    #         if value is not None:
-    #             param[arg] = value
+    # Fill in any derived paths not explicitly set in the config
+    for key, value in build_defaults(param['out_dir'], param['name_pop']).items():
+        if key not in param:
+            param[key] = value
 
     return param
 

@@ -170,11 +170,10 @@ def main():
     if args.config_file is not None:
         param = parse_config(args.config_file, args)
     else:
-        program_path = "/".join(os.path.abspath(__file__).split("/")[:-1])+"/"
+        program_path = os.path.dirname(os.path.abspath(__file__))
         param = {
             'out_dir': args.out,
             'vcf': args.vcf,
-            # for now only use as a single pop.
             'name_pop': [args.popid],
             'npop': 1,
             args.popid: args.samples,
@@ -182,39 +181,27 @@ def main():
             'folded': args.folded,
             'gen_time': args.gentime,
             'mut_rate': args.mu,
-            'out_dir_sfs': args.out+'/output_sfs/',
-            'path_to_sfs': args.out+'/output_sfs/SFS_'+args.popid+'.fs',
             'percentile_cutoff': args.percentile_cutoff,
-            'path_to_stairwayplot2': program_path+'/bin/stairway_plot_es/',
-            'blueprint_template': program_path+'/bin/template.blueprint',
-            'out_dir_stairwayplot2': args.out+'/output_stairwayplot2/',
-            'summary_file_stw': args.out+'/output_stairwayplot2/'+args.popid+'/'+args.popid+'.final.summary',
             'L': args.L,
-            # Dadi params
             'lower_bound': '1, 1, 0.05, 0.01',
             'p0': '0.01, 0.001, 0.01, 0.01',
             'upper_bound': '10, 4, 0.1, 10',
             'optimizations': '100',
-            'out_dir_dadi': args.out+'/output_dadi/',
-            'out_dir_smcpp': args.out+'/output_smcpp/',
-            'plot_file_smcpp': args.out+'/output_smcpp/'+args.popid+'_inference.csv',
-            'out_dir_gq_distrib': args.out+'/output_stats/',
-            'out_dir_stats': args.out+'/output_stats/',
-            'final_out_dir': args.out+'/inferences/',
-            # default length of contig to keep, useful for SMC++
             'length_cutoff': 100000,
             'ref_genome': None,
             'n_clust_kmeans': args.n_clust_kmeans,
             'cpus': 1,
             'contig_filter': args.contig_filter,
-            'msmc2_kwargs' : args.msmc2_kwargs,
-            'psmc_kwargs' : args.psmc_kwargs,
-            'plot_psmc_kwargs' : args.plot_psmc_kwargs,
-            'plot_format' : args.plot_format,
-            'mask' : args.mask,
+            'msmc2_kwargs': args.msmc2_kwargs,
+            'psmc_kwargs': args.psmc_kwargs,
+            'plot_psmc_kwargs': args.plot_psmc_kwargs,
+            'mask': args.mask,
             "missingness_by_sample": args.missingness_by_sample,
-            "missingness_by_site": args.missingness_by_site
+            "missingness_by_site": args.missingness_by_site,
         }
+        for key, value in build_defaults(args.out, [args.popid], program_path).items():
+            if key not in param:
+                param[key] = value
         param["sample_size"] = 0
         for p in param["name_pop"]:
             if p in list(param.keys()) and args.samples != "all":

@@ -66,63 +66,37 @@ It is recommended to get all the required dependencies using Conda, inside a ded
  
  Example **cfg.yml** file:
  ```yaml
-    ### CONFIGURATION FILE for DemInfHelper
-    ## Output top level directory
-    out_dir: ./picus_viridis/
-    ## Input data
+    ## Data
     vcf: ./VCF/picus_viridis_raw.vcf.gz
     ref_genome: ./GENOME/GCA_033816785.1.fna
-    ## L: effective sequence length genotyped
-    L: 1244800746
-    ## Population(s)
+    ## Population
     name_pop: picus_viridis
     npop: 1
-    # POP 1
-    # Note: If you don't specify samples, it will use all samples in the VCF
     picus_viridis: SAMN38508692, SAMN38508693, SAMN38508694, SAMN38508695, SAMN38508696, SAMN38508697, SAMN38508698, SAMN38508699, SAMN38508701, SAMN38508702
-    # PARAM
+    ## Pop. Parameters
     gen_time: 2
     mut_rate: 3e-8
     ## SFS
-    out_dir_sfs: ./picus_viridis/
     folded: True
-    # Only keep contigs >=10kb for the analyses
+    ## Filters
     length_cutoff: 10000
-    ## SFS if previously computed
-    path_to_sfs: ./picus_viridis/SFS_picus_viridis.fs
-    ## StairwayPlot2
-    path_to_stairwayplot2: ../deminfhelper/bin/stairway_plot_es/
-    blueprint_template: ../deminfhelper/bin/template.blueprint
-    out_dir_stairwayplot2: ./picus_viridis/output_stairwayplot2/
-    summary_file_stw: ./picus_viridis/output_stairwayplot2/picus_viridis/picus_viridis.final.summary
-    ## SMC++
-    out_dir_smcpp: ./picus_viridis/output_smcpp/
-    plot_file_smcpp: ./picus_viridis/output_smcpp/picus_viridis_inference.csv
-    # MSMC2
-    msmc2_kwargs: -i 25 -p 1*2+25*1+1*2+1*3
-    out_dir_msmc2: ./picus_viridis/output_msmc2/
-    ## PSMC
-    out_dir_psmc: ./picus_viridis/output_psmc/
-    psmc_kwargs: -N25 -t15 -r5 -p "4+25*2+4+6"
-    plot_psmc_kwargs: -x 10**4 -X 150000    
-    ## dadi parameters
-    out_dir_dadi: ./picus_viridis/output_dadi/
-    optimizations: 100
-    lower_bound: 1, 1, 0.05, 0.01
-    p0: 0.01, 0.001, 0.01, 0.01
-    upper_bound: 10, 4, 0.1, 10
-    ## GQ distribution
-    out_dir_gq_distrib: ./picus_viridis/output_stats/
-    ## FINAL INFERENCES
-    final_out_dir: ./picus_viridis/inferences/
-    ## Stats
-    out_dir_stats: ./picus_viridis/output_stats/
-    ## PCA K-means clustering
-    n_clust_kmeans: 3
     ## Filtering contig based on their name using regex.
     # Filter contigs starting by "CM":
-    contig_filter: CM.*
     # Note: To omit filtering, use .*
+    contig_filter: CM.*
+    ## Ressources allocation (in Mb)
+    mem: 4096
+    ## Dadi
+    optimizations: 100
+    p0: 1, 1, 0.2, 1
+    lower_bound: 0.01, 0.01, 0.005, 0.1
+    upper_bound: 10, 4, 5, 10
+    ## PSMC
+    psmc_kwargs: -N25 -t15 -r5 -p "4+25*2+4+6"
+    ## MSMC2
+    msmc2_kwargs: -i 25 -p 1*2+25*1+1*2+1*3
+    ## PCA
+    n_clust_kmeans: 3
  ```
 4. **Usage:**
 ```bash
