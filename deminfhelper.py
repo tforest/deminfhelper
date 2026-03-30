@@ -121,7 +121,7 @@ def parse_args():
     #SMCPP
     parser.add_argument("--smcpp", help = "run smcpp", action = "store_true")
     parser.add_argument("--plot_smcpp", help = "to plot smcpp inference", action = "store_true")
-    parser.add_argument("--Gplot", help = "to plot all inferences on the same graph", action = "store_true")
+    parser.add_argument("--combined_plot", help = "to plot all inferences on the same graph", action = "store_true")
     parser.add_argument("--folded", help = "Fold the SFS. Default: True", action = "store_true", default=True)
     # Statistics
     # PCA
@@ -155,11 +155,11 @@ def parse_args():
     if not (args.sfs or args.plot_sfs or args.stairwayplot2 or args.plot_stairwayplot2 or 
             args.dadi or args.plot_dadi or args.msmc2 or args.plot_msmc2 or 
             args.psmc or args.plot_psmc or args.gq_distrib or args.smcpp or 
-            args.plot_smcpp or args.Gplot or args.pca or args.plot_pca):
+            args.plot_smcpp or args.combined_plot or args.pca or args.plot_pca):
         print("Error: At least one of the following options must be specified:")
         print("--sfs, --plot_sfs, --stairwayplot2, --plot_stairwayplot2, --dadi, --plot_dadi,")
         print("--msmc2, --plot_msmc2, --psmc, --plot_psmc, --gq_distrib, --smcpp,")
-        print("--plot_smcpp, --Gplot, --pca, --plot_pca")
+        print("--plot_smcpp, --combined_plot, --pca, --plot_pca")
         exit(1)
     return args
 
@@ -472,10 +472,16 @@ def main():
             plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])
 
 
-    ##Gplot
-    if args.Gplot:
+    ## combined plot
+    if args.combined_plot:
         for p in param["name_pop"]:
-            Gplot(T_scaled_gen=param["out_dir_dadi"]+"popt_"+p+"_dadi.txt",gen_time=param["gen_time"],dadi_vals_list=dadi_output_parse(param["out_dir_dadi"]+"output_"+p+".dadi"),out_dir=param["out_dir"], title =p,name_pop=p,popid = p, summary_file2 = param["plot_file_smcpp"],summary_file = param["summary_file_stw"])
+            Gplot(gen_time=param["gen_time"], mu=param["mut_rate"],
+                  L=param["L_computed"], out_dir=param["out_dir"], popid=p,
+                  dadi_file=param["out_dir_dadi"]+p+".InferDM.bestfits",
+                  summary_file2=param["plot_file_smcpp"],
+                  summary_file=param["summary_file_stw"],
+                  msmc2_summary_file=param["out_dir_msmc2"]+"/"+p+"_msmc2.final.txt",
+                  psmc_output_prefix=param["out_dir_psmc"]+"/"+p)
 
 
 if __name__ == "__main__":

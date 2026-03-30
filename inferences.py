@@ -236,7 +236,11 @@ def msmc2(contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs, mask, num
     """
     if len(contigs) == 0:
         raise ValueError("Error! No contigs to use! Make sure the threshold matches your data.")
-    
+
+    tabix_input = "tabix -f " + vcf
+    print(f"Indexing VCF using {tabix_input}...")
+    os.system(tabix_input)
+
     deminfhelper_directory = os.path.dirname(os.path.abspath(__file__))
     num_cpus = num_cpus or multiprocessing.cpu_count()
 
@@ -340,7 +344,7 @@ def psmc(ref_genome, contigs, popid, pop_ind, vcf, out_dir, mu, gen_time, kwargs
     if kwargs == None:
         raise ValueError("You need to define kwargs for PSMC! Use --psmc_kwargs or define it in the config file.")
 
-    tabix_input = "tabix "+vcf
+    tabix_input = "tabix -f "+vcf
     print(f"Indexing VCF using {tabix_input}...")
     os.system(tabix_input)
         
