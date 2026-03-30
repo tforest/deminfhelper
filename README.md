@@ -138,7 +138,7 @@ usage: deminfhelper.py [-h] [--config_file CONFIG_FILE] [--cpus CPUS]
                        [--plot_psmc]
                        [--plot_psmc_kwargs PLOT_PSMC_KWARGS]
                        [--psmc_kwargs PSMC_KWARGS] [--gq_distrib]
-                       [--smcpp] [--plot_smcpp] [--Gplot] [--folded]
+                       [--smcpp] [--plot_smcpp] [--combined_plot] [--folded]
                        [--pca] [--plot_pca]
                        [--n_clust_kmeans N_CLUST_KMEANS] [--popid POPID]
                        [--samples SAMPLES] [--vcf VCF]
@@ -183,7 +183,7 @@ optional arguments:
                         distribution
   --smcpp               run smcpp
   --plot_smcpp          to plot smcpp inference
-  --Gplot               to plot all inferences on the same graph
+  --combined_plot       to plot all inferences on the same graph
   --folded              Fold the SFS. Default: True
   --pca                 Compute PCA using Plink2
   --plot_pca            Plot PCA
