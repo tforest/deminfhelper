@@ -120,6 +120,7 @@ def parse_args():
     parser.add_argument("--smcpp", help = "run smcpp", action = "store_true")
     parser.add_argument("--plot_smcpp", help = "to plot smcpp inference", action = "store_true")
     parser.add_argument("--combined_plot", help = "to plot all inferences on the same graph", action = "store_true")
+    parser.add_argument("--plot_format", help = "Output format for plots (default: png)", type=str, default="png", choices=["png", "svg"])
     parser.add_argument("--folded", help = "Fold the SFS. Default: True", action = "store_true", default=True)
     # Statistics
     # PCA
@@ -209,6 +210,7 @@ def main():
             'msmc2_kwargs' : args.msmc2_kwargs,
             'psmc_kwargs' : args.psmc_kwargs,
             'plot_psmc_kwargs' : args.plot_psmc_kwargs,
+            'plot_format' : args.plot_format,
             'mask' : args.mask,
             "missingness_by_sample": args.missingness_by_sample,
             "missingness_by_site": args.missingness_by_site
@@ -223,6 +225,9 @@ def main():
                 param[p] = get_sample_names(vcf=param["vcf"])
             param["n_"+ p] = len(param[p])
             param["sample_size"] += param["n_" + p]
+
+    # CLI args not sourced from config (always take the CLI value)
+    param["plot_format"] = args.plot_format
 
     # loop over command line args
     for arg_name in vars(args):
@@ -356,7 +361,7 @@ def main():
         if args.plot_stairwayplot2:
             for p in param["name_pop"]:
                 plot_stairwayplot2(popid = p, summary_file = "".join([param["out_dir_stairwayplot2"], p, "/", p,".final.summary"]), \
-                               out_dir = param["final_out_dir"])
+                               out_dir = param["final_out_dir"], plot_format=param["plot_format"])
 
     # Run dadi
     if args.dadi:
@@ -382,14 +387,15 @@ def main():
             plot_dadi_output_three_epochs(dadi_vals,p,out_dir = param['final_out_dir'],
                                           mu = eval(param['mut_rate']),
                                           gen_time = eval(param['gen_time']),
-                                          L = eval(param['L']))
+                                          L = eval(param['L']),
+                                          plot_format=param["plot_format"])
     #GQ distribution
     if args.gq_distrib:
         if not os.path.exists(param["out_dir_gq_distrib"]):
             os.makedirs(param["out_dir_gq_distrib"])
         GQ_dict = res_pars[1]
         for p in param["name_pop"]:
-            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"] )
+            plot_distrib_gq(popid = p, gq = GQ_dict[p], out_dir_gq = param["out_dir_gq_distrib"], plot_format=param["plot_format"])
     # PCA
     if args.pca:
         if not os.path.exists(param["out_dir_stats"]):
@@ -439,7 +445,8 @@ def main():
         for p in param["name_pop"]:
             plot_pca(plink_eigenvec=param["out_dir_stats"]+"/plink/"+p+".pca.eigenvec",
                      plink_eigenval=param["out_dir_stats"]+"/plink/"+p+".pca.eigenval",
-                     popid=p, out_dir=param["out_dir_stats"], n_clusters=param["n_clust_kmeans"])
+                     popid=p, out_dir=param["out_dir_stats"], n_clusters=param["n_clust_kmeans"],
+                     plot_format=param["plot_format"])
 
     # Plot StairwayPlot2
     if args.plot_stairwayplot2 and args.stairwayplot2==False:
@@ -450,11 +457,12 @@ def main():
                 print("path to the population final summary file missing")
             else:
                 plot_stairwayplot2(popid = p, summary_file = param["summary_file_stw"], \
-                               out_dir = param["final_out_dir"])
+                               out_dir = param["final_out_dir"], plot_format=param["plot_format"])
     if args.plot_msmc2:
         for p in param["name_pop"]:
             plot_msmc2(popid = p, summary_file = "".join([param["out_dir_msmc2"], "/", p, "_msmc2.final.txt"]), \
-                           mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"])
+                           mu = param["mut_rate"], gen_time = param["gen_time"], out_dir = param["final_out_dir"],
+                           plot_format=param["plot_format"])
             
     ## Plot PSMC
     if args.plot_psmc:
@@ -467,7 +475,8 @@ def main():
     # Plot SMC++
     if args.plot_smcpp:
         for p in param["name_pop"]:
-            plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"])
+            plot_smcpp(popid = p, summary_file = param["plot_file_smcpp"], out_dir = param["final_out_dir"],
+                       plot_format=param["plot_format"])
 
 
     ## combined plot
@@ -479,7 +488,8 @@ def main():
                   summary_file2=param["plot_file_smcpp"],
                   summary_file=param["summary_file_stw"],
                   msmc2_summary_file=param["out_dir_msmc2"]+"/"+p+"_msmc2.final.txt",
-                  psmc_output_prefix=param["out_dir_psmc"]+"/"+p)
+                  psmc_output_prefix=param["out_dir_psmc"]+"/"+p,
+                  plot_format=param["plot_format"])
 
 
 if __name__ == "__main__":

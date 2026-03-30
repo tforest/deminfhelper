@@ -157,7 +157,7 @@ def plot_sfs(sfs, plot_title, output_file):
     plt.savefig(output_file)
     plt.close()
 
-def plot_stairwayplot2(popid, summary_file, out_dir, xlog=True, ylog=True):
+def plot_stairwayplot2(popid, summary_file, out_dir, xlog=True, ylog=True, plot_format="png"):
     """
     Generate a stairway plot from summary data.
 
@@ -199,10 +199,10 @@ def plot_stairwayplot2(popid, summary_file, out_dir, xlog=True, ylog=True):
         plt.yscale("log")
     plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_stw_plot.png")
+    plt.savefig(out_dir+popid+f"_stw_plot.{plot_format}")
     plt.close()
 
-def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True):
+def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True, plot_format="png"):
     """
     Generate a plot from MSMC2 summary data.
 
@@ -249,7 +249,7 @@ def plot_msmc2(popid, summary_file, mu, gen_time, out_dir, xlog=True, ylog=True)
     plt.title(fr"[MSMC2] {popid} $\mu$={mu} gen.t={gen_time}")
     plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_msmc2_plot.png")
+    plt.savefig(out_dir+popid+f"_msmc2_plot.{plot_format}")
     plt.close()
 
 def plot_psmc(popid, sample_names, psmc_output_file,
@@ -288,7 +288,7 @@ def plot_psmc(popid, sample_names, psmc_output_file,
     print(cmd)
     os.system(f"cp {plot_output_prefix}.eps {out_dir+popid}_psmc_plot.eps")
     
-def plot_distrib_gq(popid, gq, out_dir_gq):
+def plot_distrib_gq(popid, gq, out_dir_gq, plot_format="png"):
     """
     Plot the distribution of Genotype Quality (GQ) values from a VCF file.
 
@@ -321,7 +321,7 @@ def plot_distrib_gq(popid, gq, out_dir_gq):
     plt.title(f"{popid} GQ distribution")
     plt.xlabel("GQ")
     plt.ylabel('Numbre of sites')
-    plt.savefig(f"{out_dir_gq}/{popid}_GQ_distrib.png")
+    plt.savefig(f"{out_dir_gq}/{popid}_GQ_distrib.{plot_format}")
     plt.close()
 
 def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, filter_prefix=None, nb_bins=None):
@@ -406,7 +406,7 @@ def genotyping_coverage_plot(popid, snp_coverage, out_dir_stats, nb_plots=None, 
             pdf.savefig()
             plt.close()
             
-def plot_smcpp(popid, summary_file, out_dir, xlog=True, ylog=True):
+def plot_smcpp(popid, summary_file, out_dir, xlog=True, ylog=True, plot_format="png"):
     """
     Plot the effective population size (Ne) trajectory using SMC++ summary output.
 
@@ -445,12 +445,12 @@ def plot_smcpp(popid, summary_file, out_dir, xlog=True, ylog=True):
     plt.title(fr"[SMC++] {popid}")
     plt.xlabel('Time (years ago)')
     plt.ylabel('Ne')
-    plt.savefig(out_dir+popid+"_smcpp_plot.png")
+    plt.savefig(out_dir+popid+f"_smcpp_plot.{plot_format}")
     plt.close()
     
 def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_time,
                                   xlim = None, ylim = None, xlog = True, ylog = True,
-                                  max_v = -10**6, nb_plots_max = 10, title=None):
+                                  max_v = -10**6, nb_plots_max = 10, title=None, plot_format="png"):
     """
     Plot demographic scenarios estimated using Dadi for a population with three epochs of size changes.
 
@@ -531,13 +531,13 @@ def plot_dadi_output_three_epochs(dadi_vals_list,name_pop,out_dir, mu, L, gen_ti
         plt.xlim(xlim)
     if ylim:
         plt.ylim(ylim)
-    plt.savefig(out_dir+"/"+name_pop+"_dadi_plot.png")
+    plt.savefig(out_dir+"/"+name_pop+f"_dadi_plot.{plot_format}")
     plt.close()
 
 def Gplot(gen_time, mu, L, out_dir, popid, name_pop=None,
           dadi_file=None, summary_file=None, summary_file2=None,
           msmc2_summary_file=None, psmc_output_prefix=None,
-          max_v=-10**6, title="estimates"):
+          max_v=-10**6, title="estimates", plot_format="png"):
     """
     Generate a combined demographic inference plot overlaying all available methods.
 
@@ -726,10 +726,10 @@ def Gplot(gen_time, mu, L, out_dir, popid, name_pop=None,
     plt.xlabel('Time (years ago)')
     plt.ylabel('Effective population size (Ne)')
     plt.legend()
-    plt.savefig(out_dir + popid + "_combined_plot.png")
+    plt.savefig(out_dir + popid + f"_combined_plot.{plot_format}")
     plt.close()
 
-def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
+def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9, plot_format="png"):
     """
     Perform Principal Component Analysis (PCA) on genetic data and generate plots and cluster information.
 
@@ -819,7 +819,7 @@ def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
     plt.title(f'PCA: PC1 vs PC2 ({num_components} components)')
     plt.xlabel(f'PC1 ({variance_explained[0]:.2f}%)')
     plt.ylabel(f'PC2 ({variance_explained[1]:.2f}%)')
-    plt.savefig(out_dir+"/"+popid+"_PCA.png")
+    plt.savefig(out_dir+"/"+popid+f"_PCA.{plot_format}")
 
     # Create a Plotly scatter plot with different symbols for each cluster
     symbol_sequence = range(1,10)  # Define symbol sequence
@@ -860,4 +860,4 @@ def plot_pca(plink_eigenvec, plink_eigenval, popid, out_dir, n_clusters=9):
     plt.xlabel('Number of Components (K)')
     plt.ylabel('Proportion of Explained Variance (%)')
     plt.title(f'Explained Variance by Components ({num_components} components)')
-    plt.savefig(out_dir+"/"+popid+"_explained_var.png")
+    plt.savefig(out_dir+"/"+popid+f"_explained_var.{plot_format}")
