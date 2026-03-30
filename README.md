@@ -239,7 +239,14 @@ optional arguments:
      deminfhelper.py --config_file cfg.yml --plot_msmc2 --cpus 8
      deminfhelper.py --config_file cfg.yml --plot_psmc --cpus 8
      ```
+ - Combined plot:
+     ```bash
+     deminfhelper.py --config_file cfg.yml --combined_plot
+     ```
 
+6. **Combined plot**
+
+![Picus viridis combined plot](example/combined_plot.svg)
 
 ## Contribute
 
